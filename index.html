@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>全屋智能点位工作台</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="点位工作台">
 <style>
   :root{
     --bg:#eef1f6; --card:#ffffff; --line:#e3e8ef; --txt:#1f2937; --sub:#6b7280;
@@ -110,7 +115,7 @@
   .cat-head .add:hover{background:#eef4fe;}
   .rows{display:flex; flex-direction:column; gap:6px;}
   .item-row{
-    display:grid; grid-template-columns:minmax(120px,1fr) 58px minmax(100px,1fr) 26px;
+    display:grid; grid-template-columns:12px minmax(110px,1.2fr) 54px 46px minmax(90px,1fr) 26px;
     gap:6px; align-items:center;
   }
   .item-row input{padding:6px 8px; font-size:13px; width:100%;}
@@ -173,6 +178,89 @@
     opacity:0; pointer-events:none; transition:.25s; z-index:99; box-shadow:0 8px 24px rgba(0,0,0,.25);
   }
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  #toast .toast-btn{
+    margin-left:12px; background:#2563eb; color:#fff; border-radius:6px;
+    padding:4px 12px; font-size:12px; font-weight:600;
+  }
+  #toast .toast-btn:hover{background:#1d4ed8;}
+
+  /* ===== 弹窗 ===== */
+  .modal-mask{
+    position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:60;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .modal{
+    background:#fff; border-radius:14px; width:100%; max-width:760px;
+    max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 24px 64px rgba(0,0,0,.28);
+  }
+  .modal-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-bottom:1px solid var(--line);
+  }
+  .modal-head h3{font-size:16px;}
+  .modal-close{color:#9ca3af; font-size:16px; width:30px; height:30px; border-radius:8px;}
+  .modal-close:hover{background:#f3f4f6; color:#374151;}
+  .modal-body{padding:14px 18px; overflow-y:auto;}
+  .modal-footer{
+    padding:12px 18px; border-top:1px solid var(--line);
+    display:flex; gap:8px; justify-content:flex-end;
+  }
+  .modal input[type="text"], .modal input[type="password"], .modal select{
+    border:1px solid var(--line); border-radius:8px; padding:6px 9px; font-size:13px;
+  }
+  .sum-table{width:100%; border-collapse:collapse; font-size:13px;}
+  .sum-table th, .sum-table td{
+    border-bottom:1px solid var(--line); padding:7px 9px; text-align:left; vertical-align:top;
+  }
+  .sum-table th{background:#f6f8fb; font-size:12px; color:#475569; position:sticky; top:-14px;}
+  .sum-table .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .sum-table .cat-cell{font-weight:700; background:#fbfcfe;}
+  .sum-table .spaces-cell{color:var(--sub); font-size:12px;}
+  .sum-table tfoot td{font-weight:700; border-top:2px solid var(--line); border-bottom:none;}
+  .search-row{
+    display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:8px; cursor:pointer;
+  }
+  .search-row:hover{background:#f3f6fb;}
+  .search-row .s-tag{
+    flex:0 0 auto; font-size:11px; background:#eef2fb; color:var(--accent);
+    border-radius:6px; padding:2px 7px; font-weight:600;
+  }
+  .search-row .s-name{font-weight:600;}
+  .search-row .s-note{color:var(--sub); font-size:12px; margin-left:8px;}
+  .search-empty{color:#9ca3af; font-size:13px; padding:10px 2px;}
+  .cat-manage-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .cat-manage-row input[type="text"]{flex:1;}
+  .cat-manage-row select{flex:0 0 auto;}
+  .cat-manage-row input[type="color"]{
+    width:34px; height:30px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff;
+  }
+  .cat-manage-del{color:var(--danger); font-size:12px; flex:0 0 auto; padding:5px 8px;}
+  .cat-manage-del:hover{background:#fee9e9; border-radius:6px;}
+  .item-row .i-handle{
+    color:#c3cad6; font-size:13px; cursor:grab; text-align:center; user-select:none;
+  }
+  .item-row .i-handle:active{cursor:grabbing;}
+  .item-row.drag-src{opacity:.35;}
+  .item-row.drag-over{box-shadow:0 -2px 0 var(--accent);}
+  #spaceList li.drag-over{border-top:2px solid var(--accent);}
+  .item-row.flash{animation:flashRow 1.8s ease;}
+  @keyframes flashRow{
+    0%, 55%{background:#fff7db; box-shadow:0 0 0 2px #f59e0b inset;}
+    100%{background:transparent;}
+  }
+  .i-unit{font-size:12px !important;}
+
+  /* ===== 打印：只打印汇总弹窗表格 ===== */
+  @media print{
+    body{overflow:visible; height:auto; background:#fff;}
+    .topbar, .layout, #toast{display:none !important;}
+    .modal-mask{position:static; background:none; padding:0; display:block;}
+    .modal{max-width:none; max-height:none; box-shadow:none; border-radius:0;}
+    .modal-head, .modal-footer{display:none;}
+    .modal-body{overflow:visible; padding:0;}
+    .sum-table th{position:static;}
+  }
 
   /* ===== 移动端适配（≤820px；PC 端不受影响） ===== */
   .menu-toggle{display:none;}
@@ -202,13 +290,15 @@
     .space-head .btn{white-space:nowrap;}
     .space-name-input{font-size:19px; min-width:100px;}
     .item-row{
-      grid-template-columns:minmax(100px,1fr) 56px 26px;
-      grid-template-areas:"name qty del" "note note note";
+      grid-template-columns:minmax(100px,1fr) 54px 44px 26px;
+      grid-template-areas:"name qty unit del" "note note note note";
     }
     .item-row .i-name{grid-area:name;}
     .item-row .i-qty{grid-area:qty;}
+    .item-row .i-unit{grid-area:unit;}
     .item-row .i-del{grid-area:del;}
     .item-row .i-note{grid-area:note;}
+    .item-row .i-handle{display:none;}
     .rightbar{width:auto; min-width:0; border-left:none; border-top:1px solid var(--line);}
     input,textarea{font-size:16px;} /* 防 iOS 聚焦自动放大 */
     .item-row input{font-size:16px;}
@@ -223,6 +313,8 @@
   <div class="stats" id="globalStats"></div>
   <div class="actions">
     <button class="btn primary" id="btnExport">⬇️ 导出 Excel</button>
+    <button class="btn" id="btnSummary">📋 全屋汇总</button>
+    <button class="btn" id="btnSearch">🔍 搜索</button>
     <button class="btn" id="btnBackup">备份 JSON</button>
     <button class="btn" id="btnImport">导入 JSON</button>
     <button class="btn ghost-danger" id="btnReset">恢复初始数据</button>
@@ -269,7 +361,7 @@
     <div class="tips">
       💾 所有修改实时保存在本机浏览器中，无需手动保存。<br>
       🔁 换电脑或清理浏览器前，请先「备份 JSON」，再在另一台设备「导入 JSON」。<br>
-      📄 「导出 Excel」生成 .xlsx 文件，含点位总表 / 明细清单 / 全局备注三个工作表。
+      📄 「导出 Excel」生成 .xlsx 文件，含点位总表 / 明细清单 / 汇总清单 / 全局备注四个工作表。
     </div>
   </aside>
 </div>
@@ -283,15 +375,62 @@
  * 数据模型：state = { spaces:[{id,name,note,items:[{id,cat,name,qty,note}]}], globalNotes:[{id,text}] }
  * ===================================================================== */
 
-const CATS = ['灯', '开关', '插座', '传感器', '其他'];
-const CAT_META = {
-  '灯':     { icon: '💡', color: 'var(--c-light)'  },
-  '开关':   { icon: '🔘', color: 'var(--c-switch)' },
-  '插座':   { icon: '🔌', color: 'var(--c-socket)' },
-  '传感器': { icon: '📡', color: 'var(--c-sensor)' },
-  '其他':   { icon: '🧩', color: 'var(--c-other)'  },
-};
+const DEFAULT_CATS = [
+  { name: '灯',     icon: '💡', color: '#f59e0b' },
+  { name: '开关',   icon: '🔘', color: '#3b82f6' },
+  { name: '插座',   icon: '🔌', color: '#ec4899' },
+  { name: '传感器', icon: '📡', color: '#10b981' },
+  { name: '其他',   icon: '🧩', color: '#8b5cf6' },
+];
+const CAT_ICON_CHOICES = ['💡', '🔘', '🔌', '📡', '🧩', '📦', '🪟', '❄️', '🎥', '🚪', '🔒', '🌡️', '🚰', '🧹', '📺', '🔊', '🛗', '🛠️'];
+const CAT_COLOR_CHOICES = ['#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#64748b'];
+let CATS = DEFAULT_CATS.map(c => c.name);
 const STORE_KEY = 'smarthome-point-workbench-v1';
+
+function catInfo(name) {
+  return state.cats.find(c => c.name === name) || { name, icon: '📦', color: '#64748b' };
+}
+function rebuildCats() {
+  CATS = state.cats.map(c => c.name);
+}
+/* 旧数据迁移：补 cats / 单位 / updatedAt；把项目里出现的未知分类自动注册；
+ * 坏数据兜底（缺 items/globalNotes、非法 qty/icon/color、重名分类合并），避免渲染崩溃 */
+function migrateState(s) {
+  if (!Array.isArray(s.cats) || !s.cats.length) s.cats = deepClone(DEFAULT_CATS);
+  s.cats.forEach(c => {
+    c.name = String(c.name || '').trim() || '未命名';
+    if (!CAT_ICON_CHOICES.includes(c.icon)) c.icon = '📦';
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(c.color || ''))) c.color = '#64748b';
+  });
+  /* 重名分类合并到第一个 */
+  for (let i = 0; i < s.cats.length; i++) {
+    for (let j = s.cats.length - 1; j > i; j--) {
+      if (s.cats[j].name === s.cats[i].name) {
+        (s.spaces || []).forEach(sp => (sp.items || []).forEach(it => { if (it.cat === s.cats[j].name) it.cat = s.cats[i].name; }));
+        s.cats.splice(j, 1);
+      }
+    }
+  }
+  (s.spaces || []).forEach(sp => {
+    if (!Array.isArray(sp.items)) sp.items = [];
+    sp.items.forEach(it => {
+      if (it.cat && !s.cats.some(c => c.name === it.cat)) s.cats.push({ name: it.cat, icon: '📦', color: '#64748b' });
+      if (typeof it.unit !== 'string') it.unit = '';
+      if (!it.id) it.id = uid();
+      if (typeof it.qty === 'number' && it.qty > 0) it.qty = Math.floor(it.qty);
+      else if (typeof it.qty === 'string' && /^\d+$/.test(it.qty.trim()) && Number(it.qty) > 0) it.qty = Number(it.qty.trim());
+      else it.qty = null;
+      if (typeof it.name !== 'string') it.name = it.name == null ? '' : String(it.name);
+      if (typeof it.note !== 'string') it.note = it.note == null ? '' : String(it.note);
+    });
+  });
+  if (!Array.isArray(s.globalNotes)) s.globalNotes = [];
+  if (typeof s.updatedAt !== 'number') s.updatedAt = 0;
+  return s;
+}
+function h(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
 
 /* ---------- 表格初始数据（来自《全屋智能表格.xlsx》） ---------- */
 const SEED_DATA = {
@@ -414,7 +553,8 @@ function loadState() {
     return s;
   } catch (e) { return null; }
 }
-let state = loadState() || deepClone(SEED_DATA);
+let state = migrateState(loadState() || deepClone(SEED_DATA));
+rebuildCats();
 let selectedId = state.spaces.length ? state.spaces[0].id : null;
 
 function save() {
@@ -723,17 +863,35 @@ function buildSheetsFromState(st) {
   /* ---- Sheet2 明细清单 ---- */
   {
     const rows = [];
-    rows.push({ ht: 24, cells: ['空间', '类别', '项目', '数量', '备注'].map(h => ({ v: h, s: 1 })) });
+    rows.push({ ht: 24, cells: ['空间', '类别', '项目', '数量', '单位', '备注'].map(h => ({ v: h, s: 1 })) });
     for (const sp of st.spaces) {
       for (const c of CATS) {
         for (const it of sp.items) {
           if (it.cat !== c || !it.name) continue;
-          rows.push({ cells: [{ v: sp.name, s: 2 }, { v: c, s: 5 }, { v: it.name, s: 2 }, { v: it.qty == null ? '' : it.qty, s: 5 }, { v: it.note || '', s: 6 }] });
+          rows.push({ cells: [{ v: sp.name, s: 2 }, { v: c, s: 5 }, { v: it.name, s: 2 }, { v: it.qty == null ? '' : it.qty, s: 5 }, { v: it.unit || '', s: 5 }, { v: it.note || '', s: 6 }] });
         }
       }
     }
-    const filterEnd = XLSXWriter.colName(4) + rows.length; // A1:E{last}
-    sheets.push({ name: '明细清单', cols: [12, 10, 28, 8, 30], rows, freeze: 1, autoFilter: 'A1:' + filterEnd });
+    const filterEnd = XLSXWriter.colName(5) + rows.length; // A1:F{last}
+    sheets.push({ name: '明细清单', cols: [12, 10, 26, 8, 8, 28], rows, freeze: 1, autoFilter: 'A1:' + filterEnd });
+  }
+  /* ---- Sheet3 汇总清单（跨空间同名合计，采购/交底用） ---- */
+  {
+    const rows = [];
+    rows.push({ ht: 24, cells: ['类别', '项目', '单位', '合计数量', '涉及空间数', '涉及空间'].map(h => ({ v: h, s: 1 })) });
+    let grand = 0, kinds = 0;
+    for (const grp of buildSummary()) {
+      if (!grp.rows.length) continue;
+      let sub = 0;
+      for (const r of grp.rows) {
+        sub += r.total; grand += r.total; kinds++;
+        rows.push({ cells: [{ v: grp.cat, s: 2 }, { v: r.name, s: 2 }, { v: r.units.join('/'), s: 5 }, { v: r.total, s: 5 }, { v: r.spaces.length, s: 5 }, { v: r.spaces.join('、'), s: 2 }] });
+      }
+      rows.push({ ht: 22, cells: [{ v: grp.cat + ' 小计', s: 3 }, { v: '', s: 2 }, { v: '', s: 5 }, { v: sub, s: 5 }, { v: '', s: 5 }, { v: '', s: 2 }] });
+    }
+    rows.push({ ht: 24, cells: [{ v: '全屋合计', s: 3 }, { v: kinds + ' 种项目', s: 2 }, { v: '', s: 5 }, { v: grand, s: 5 }, { v: '', s: 5 }, { v: st.spaces.length + ' 个空间', s: 2 }] });
+    /* 含小计/合计行，不加 autoFilter（筛选会把合计当数据行） */
+    sheets.splice(2, 0, { name: '汇总清单', cols: [10, 26, 8, 10, 11, 40], rows, freeze: 1 });
   }
   /* ---- Sheet3 全局备注 ---- */
   {
@@ -765,7 +923,7 @@ function exportExcel() {
   const ds = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
   downloadBytes(bytes, '全屋智能点位表_' + ds + '.xlsx',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  toast('✅ 已导出 Excel（含点位总表 / 明细清单 / 全局备注）');
+  toast('✅ 已导出 Excel（点位总表 / 明细清单 / 汇总清单 / 全局备注）');
 }
 function exportJSON() {
   const txt = JSON.stringify(state, null, 2);
@@ -787,7 +945,7 @@ function loadSyncCfg() {
   try { return JSON.parse(localStorage.getItem(SYNC_CFG_KEY)) || null; } catch (e) { return null; }
 }
 let syncCfg = (typeof localStorage !== 'undefined') ? loadSyncCfg() : null;
-let syncPushTimer = null, syncBusy = false;
+let syncPushTimer = null, syncRetryTimer = null, syncBusy = false;
 
 function syncConfigured() { return !!(syncCfg && syncCfg.token && syncCfg.gistId); }
 function setSyncStatus(msg) {
@@ -845,6 +1003,11 @@ function scheduleSyncPush() {
   clearTimeout(syncPushTimer);
   syncPushTimer = setTimeout(() => syncPush(false), 4000);
 }
+/* 单一重试链：新的重试会替换旧的，断开连接/上传成功时由调用方清除 */
+function scheduleSyncRetry() {
+  clearTimeout(syncRetryTimer);
+  syncRetryTimer = setTimeout(() => { syncRetryTimer = null; syncPush(false, true); }, 30000);
+}
 
 /* 检查云端状态，只更新状态行 */
 async function syncCheck(quiet) {
@@ -856,36 +1019,65 @@ async function syncCheck(quiet) {
     const remote = gistDataOf(g);
     if (!remote || !Array.isArray(remote.spaces)) { setSyncStatus('⚠ 云端 Gist 里没有有效的点位数据'); return; }
     const rT = remote.updatedAt || 0, lT = state.updatedAt || 0;
-    if (rT > lT) setSyncStatus('☁️ 云端更新（' + fmtTime(rT) + '）：点「⬇ 强制下载」获取');
-    else if (rT < lT) setSyncStatus('💾 本地较新，修改会自动上传');
-    else setSyncStatus('✅ 本地与云端一致（' + fmtTime(rT) + '）');
+    if (rT > lT) {
+      setSyncStatus('☁️ 云端更新（' + fmtTime(rT) + '）：点「⬇ 强制下载」获取');
+    } else {
+      /* 云端与本地一致，或云端是本机旧版本：之后允许自动上传 */
+      syncCfg.mySynced = rT;
+      saveSyncCfg();
+      if (rT < lT) setSyncStatus('💾 本地较新，修改会自动上传');
+      else setSyncStatus('✅ 本地与云端一致（' + fmtTime(rT) + '）');
+    }
   } catch (e) {
     setSyncStatus('❌ 连接失败：' + e.message);
   }
 }
 
-/* 上传。force=false 时若云端更新则取消，防止旧设备覆盖新数据 */
-async function syncPush(force) {
-  if (!syncConfigured() || syncBusy) return;
+/* 上传。force=false 时若云端被其他设备更新过则暂停，防止互相覆盖；
+ * silent=true 时不改状态栏（用于后台自动重试） */
+async function syncPush(force, silent) {
+  if (!syncConfigured()) return;
+  if (syncBusy) { if (!force) scheduleSyncRetry(); return; } // 忙碌时改约 30 秒后再试，不丢推送也不叠加
   syncBusy = true;
+  clearTimeout(syncPushTimer);
+  clearTimeout(syncRetryTimer);
   try {
-    if (!force) setSyncStatus('⬆ 正在自动上传…');
-    const g = await ghGistGet(syncCfg.token, syncCfg.gistId).catch(() => null);
+    if (!silent) setSyncStatus(force ? '⬆ 正在强制上传…' : '⬆ 正在自动上传…');
+    let g = null, fetchErr = null;
+    try { g = await ghGistGet(syncCfg.token, syncCfg.gistId); }
+    catch (e) { fetchErr = e; }
+    if (fetchErr) {
+      /* 网络/权限失败时绝不能走“创建新 Gist”分支，否则会造成数据分叉 */
+      const retryable = !/GitHub API 40[13]/.test(fetchErr.message);
+      setSyncStatus('❌ 上传前无法访问云端（' + fetchErr.message + '）' + (retryable ? '，30 秒后自动重试' : ''));
+      syncBusy = false;
+      if (retryable && !force) scheduleSyncRetry();
+      return;
+    }
     const remote = g ? gistDataOf(g) : null;
-    if (!force && remote && (remote.updatedAt || 0) > (state.updatedAt || 0)) {
-      setSyncStatus('⚠ 云端数据比本地新（' + fmtTime(remote.updatedAt) + '），已暂停自动上传。确认要覆盖云端请点「⬆ 强制上传」');
+    if (!force && remote && Array.isArray(remote.spaces) && (remote.updatedAt || 0) !== (syncCfg.mySynced || 0)) {
+      setSyncStatus('⚠ 云端数据已被其他设备更新（' + fmtTime(remote.updatedAt) + '），自动上传已暂停。请选择：「⬇ 强制下载」采用云端，或「⬆ 强制上传」用本机覆盖');
       syncBusy = false;
       return;
     }
     if (g && g.id) {
-      await ghGistUpdate(syncCfg.token, syncCfg.gistId, JSON.stringify(state));
+      try {
+        await ghGistUpdate(syncCfg.token, syncCfg.gistId, JSON.stringify(state));
+      } catch (e) {
+        setSyncStatus('❌ 上传失败：' + e.message);
+        syncBusy = false;
+        if (!force) scheduleSyncRetry();
+        return;
+      }
     } else {
+      /* 只有确认云端 Gist 确实不存在（404）才会走到这里 */
       const ng = await ghGistCreate(syncCfg.token, JSON.stringify(state));
       syncCfg.gistId = ng.id;
-      saveSyncCfg();
       renderSyncPanel();
     }
-    setSyncStatus('✅ 已上传到云端 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+    syncCfg.mySynced = state.updatedAt || 0;
+    saveSyncCfg();
+    if (!silent) setSyncStatus('✅ 已上传到云端 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
   } catch (e) {
     setSyncStatus('❌ 上传失败：' + e.message);
   }
@@ -909,12 +1101,17 @@ async function syncDownload(skipConfirm) {
         return;
       }
     }
-    state = remote;
+    state = migrateState(remote);
+    rebuildCats();
     selectedId = state.spaces.length ? state.spaces[0].id : null;
     save();
     renderAll();
     renderSyncPanel();
     setSyncStatus('✅ 已下载云端数据到本机');
+    syncBusy = false;
+    /* 立即回传一次，让云端时间戳与本地对齐（内容一致），避免之后误判冲突 */
+    await syncPush(true, true);
+    return;
   } catch (e) {
     setSyncStatus('❌ 下载失败：' + e.message);
   }
@@ -928,23 +1125,33 @@ function initSyncPanel() {
     const token = document.getElementById('syncToken').value.trim();
     const gistId = document.getElementById('syncGist').value.trim();
     if (!token) { toast('请先粘贴 GitHub Token'); return; }
+    const prevCfg = syncCfg;
     syncCfg = { token, gistId };
     setSyncStatus('… 正在连接');
     try {
       if (!gistId) {
         const ng = await ghGistCreate(token, JSON.stringify(state));
         syncCfg.gistId = ng.id;
+        syncCfg.mySynced = state.updatedAt || 0;
         saveSyncCfg();
         renderSyncPanel();
-        setSyncStatus('✅ 已连接并创建云端 Gist，当前数据已上传，其他设备可用同一 Token 连接');
+        setSyncStatus('✅ 已连接并创建云端 Gist，当前数据已上传，其他设备连接时请填入同一 Gist ID');
       } else {
-        await ghGistGet(token, gistId);
+        const g = await ghGistGet(token, gistId);
+        const remote = g ? gistDataOf(g) : null;
+        const rT = remote && Array.isArray(remote.spaces) ? (remote.updatedAt || 0) : 0;
+        /* 云端不比本地新 → 允许后续自动上传；云端更新 → 先要求用户明确「下载」或「强制上传」 */
+        syncCfg.mySynced = rT <= (state.updatedAt || 0) ? rT : 0;
         saveSyncCfg();
         await syncCheck(false);
       }
       toast('✅ 云同步已连接');
     } catch (e) {
-      syncCfg = null;
+      /* 连接失败：恢复连接前的配置（可能是 null），避免坏 Token 覆盖好配置后刷新“复活” */
+      syncCfg = prevCfg;
+      if (prevCfg) saveSyncCfg();
+      else if (typeof localStorage !== 'undefined') localStorage.removeItem(SYNC_CFG_KEY);
+      renderSyncPanel();
       setSyncStatus('❌ 连接失败：' + e.message);
     }
   });
@@ -959,6 +1166,8 @@ function initSyncPanel() {
   document.getElementById('syncUnlink').addEventListener('click', () => {
     if (!syncCfg) { toast('当前未连接云同步'); return; }
     if (!confirm('断开云同步？\n（只清除本机的连接信息，云端 Gist 数据会保留）')) return;
+    clearTimeout(syncPushTimer);
+    clearTimeout(syncRetryTimer);
     syncCfg = null;
     if (typeof localStorage !== 'undefined') localStorage.removeItem(SYNC_CFG_KEY);
     renderSyncPanel();
@@ -970,13 +1179,44 @@ function initSyncPanel() {
 /* =====================================================================
  * 界面渲染
  * ===================================================================== */
-let toastTimer = null;
-function toast(msg) {
+let toastTimer = null, toastActionFn = null;
+function toast(msg, actionLabel, actionFn) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.innerHTML = h(msg) + (actionLabel ? '<button class="toast-btn">' + h(actionLabel) + '</button>' : '');
+  toastActionFn = actionFn || null;
+  if (actionLabel) {
+    t.querySelector('.toast-btn').addEventListener('click', () => {
+      t.classList.remove('show');
+      const fn = toastActionFn;
+      toastActionFn = null;
+      if (fn) fn();
+    });
+  }
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  toastTimer = setTimeout(() => t.classList.remove('show'), actionLabel ? 6000 : 2600);
+}
+
+/* ---------- 撤销：破坏性操作前拍快照，toast 里一键回滚 ---------- */
+let undoSnapshot = null;
+function takeSnapshot() {
+  undoSnapshot = deepClone(state);
+  return undoSnapshot;
+}
+/* 校验快照仍是最新的待撤销状态，防止旧 toast 的「撤销」回滚掉新操作 */
+function undoIfCurrent(snap) {
+  if (undoSnapshot !== snap) { toast('该撤销已失效（后面有新的操作）'); return; }
+  undoLast();
+}
+function undoLast() {
+  if (!undoSnapshot) { toast('没有可撤销的操作'); return; }
+  state = undoSnapshot;
+  undoSnapshot = null;
+  rebuildCats();
+  if (!state.spaces.some(s => s.id === selectedId)) selectedId = state.spaces.length ? state.spaces[0].id : null;
+  save();
+  renderAll();
+  toast('✅ 已撤销上一步操作');
 }
 
 function renderStats() {
@@ -984,9 +1224,9 @@ function renderStats() {
   const el = document.getElementById('globalStats');
   el.innerHTML =
     '<span class="chip">🏘️ 空间 <b>' + g.spaces + '</b></span>' +
-    CATS.map(c => {
-      const m = CAT_META[c];
-      return '<span class="chip">' + m.icon + ' ' + c + ' <b>' + g.per[c].items + '</b> 项 · <b>' + g.per[c].points + '</b> 个点位</span>';
+    state.cats.map(c => {
+      const p = g.per[c.name] || { items: 0, points: 0 };
+      return '<span class="chip">' + c.icon + ' ' + h(c.name) + ' <b>' + p.items + '</b> 项 · <b>' + p.points + '</b> 个点位</span>';
     }).join('') +
     '<span class="chip">Σ 合计 <b>' + g.total + '</b> 个点位</span>';
 }
@@ -998,6 +1238,7 @@ function renderSidebar() {
     const st = spaceStats(sp);
     const li = document.createElement('li');
     li.dataset.id = sp.id;
+    li.draggable = true;
     if (sp.id === selectedId) li.classList.add('active');
     li.innerHTML = '<span class="s-icon">' + spaceIcon(sp.name) + '</span>' +
       '<span class="s-name"></span><span class="s-count">' + st.total + '</span>';
@@ -1019,26 +1260,30 @@ function renderCategoryRows(sp, cat, container) {
     row.className = 'item-row';
     row.dataset.id = it.id;
     row.innerHTML =
-      '<input class="i-name" placeholder="项目名称">' +
-      '<input class="i-qty" type="number" min="1" max="99" placeholder="—" title="数量，留空表示未定">' +
+      '<span class="i-handle" title="拖动排序">⠿</span>' +
+      '<input class="i-name" placeholder="项目名称" list="allNames">' +
+      '<input class="i-qty" type="number" min="1" max="999" placeholder="—" title="数量，留空表示未定">' +
+      '<input class="i-unit" placeholder="单位" title="单位，如：个 / 路 / 米">' +
       '<input class="i-note" placeholder="备注（选填）">' +
       '<button class="i-del" title="删除">✕</button>';
     const nameI = row.querySelector('.i-name');
     const qtyI = row.querySelector('.i-qty');
+    const unitI = row.querySelector('.i-unit');
     const noteI = row.querySelector('.i-note');
     nameI.value = it.name;
     if (it.qty != null) qtyI.value = it.qty;
+    unitI.value = it.unit || '';
     noteI.value = it.note || '';
     container.appendChild(row);
   }
 }
 
 function catCardHtml(cat) {
-  const m = CAT_META[cat];
-  return '<section class="cat-card" data-cat="' + cat + '">' +
+  const m = catInfo(cat);
+  return '<section class="cat-card" data-cat="' + h(cat) + '">' +
     '<div class="cat-head">' +
     '<span class="cat-bar" style="background:' + m.color + '"></span>' +
-    '<span>' + m.icon + '</span><span class="cat-title">' + cat + '</span>' +
+    '<span>' + m.icon + '</span><span class="cat-title">' + h(cat) + '</span>' +
     '<span class="badge"></span>' +
     '<button class="add">＋ 添加</button>' +
     '</div><div class="rows"></div></section>';
@@ -1064,21 +1309,37 @@ function renderMain() {
   main.innerHTML =
     '<div class="space-head">' +
     '<input class="space-name-input" value=""><span class="space-meta"></span><span class="spacer"></span>' +
-    '<button class="btn ghost-danger" id="btnDelSpace">🗑 删除此空间</button>' +
+    '<button class="btn" id="btnManageCats" title="新增 / 重命名 / 删除分类">🗂 分类</button>' +
+    '<button class="btn" id="btnCopyFrom" title="把其他空间的项目复制到当前空间">⇩ 复制项目</button>' +
+    '<button class="btn" id="btnCloneSpace" title="复制整个空间">⧉ 复制空间</button>' +
+    '<button class="btn ghost-danger" id="btnDelSpace">🗑 删除</button>' +
     '</div>' +
     '<div class="cat-grid">' + CATS.map(catCardHtml).join('') + '</div>' +
-    '<section class="note-card"><h3>📝 单独备注（' + '' + '）</h3>' +
+    '<section class="note-card"><h3></h3>' +
     '<textarea class="space-note" placeholder="该空间的备注，如：窗帘盒加灯带…"></textarea></section>';
   const nameI = main.querySelector('.space-name-input');
   nameI.value = sp.name;
   main.querySelector('.note-card h3').textContent = '📝 单独备注（' + sp.name + '）';
-  const noteTa = main.querySelector('.space-note');
-  noteTa.value = sp.note || '';
-  for (const cat of CATS) {
-    const card = main.querySelector('.cat-card[data-cat="' + cat + '"]');
-    renderCategoryRows(sp, cat, card.querySelector('.rows'));
+  main.querySelector('.space-note').value = sp.note || '';
+  const cards = main.querySelectorAll('.cat-card');
+  for (const card of cards) {
+    renderCategoryRows(sp, card.dataset.cat, card.querySelector('.rows'));
   }
+  updateAllNames();
   updateCatBadges(sp);
+}
+
+/* 把全库已有项目名称灌进 datalist，输入时自动联想 */
+function updateAllNames() {
+  let dl = document.getElementById('allNames');
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = 'allNames';
+    document.body.appendChild(dl);
+  }
+  const names = new Set();
+  for (const sp of state.spaces) for (const it of sp.items) if (it.name) names.add(it.name);
+  dl.innerHTML = Array.from(names).map(n => '<option value="' + h(n) + '">').join('');
 }
 
 function refreshCounts() {
@@ -1117,6 +1378,343 @@ function renderAll() {
 /* =====================================================================
  * 事件绑定（事件委托）
  * ===================================================================== */
+/* =====================================================================
+ * 弹窗框架 + 全屋汇总 + 搜索 + 分类管理 + 复制
+ * ===================================================================== */
+function openModal(title, bodyHtml, footerHtml) {
+  closeModal();
+  const mask = document.createElement('div');
+  mask.className = 'modal-mask';
+  mask.id = 'modalMask';
+  mask.innerHTML =
+    '<div class="modal"><div class="modal-head"><h3>' + h(title) + '</h3>' +
+    '<button class="modal-close" title="关闭">✕</button></div>' +
+    '<div class="modal-body">' + bodyHtml + '</div>' +
+    (footerHtml ? '<div class="modal-footer">' + footerHtml + '</div>' : '') +
+    '</div>';
+  document.body.appendChild(mask);
+  mask.querySelector('.modal-close').addEventListener('click', closeModal);
+  mask.addEventListener('mousedown', e => { if (e.target === mask) closeModal(); });
+  return mask;
+}
+function closeModal() {
+  const m = document.getElementById('modalMask');
+  if (m) m.remove();
+}
+
+/* ---------- 全屋汇总（跨空间同名合计，可用于采购/交底） ---------- */
+function buildSummary() {
+  return CATS.map(cat => {
+    const m = new Map();
+    for (const sp of state.spaces) {
+      for (const it of sp.items) {
+        if (it.cat !== cat || !it.name) continue;
+        let row = m.get(it.name);
+        if (!row) { row = { name: it.name, units: [], total: 0, spaces: [] }; m.set(it.name, row); }
+        row.total += (it.qty || 1);
+        if (it.unit && !row.units.includes(it.unit)) row.units.push(it.unit);
+        if (!row.spaces.includes(sp.name)) row.spaces.push(sp.name);
+      }
+    }
+    const rows = Array.from(m.values()).sort((a, b) => b.total - a.total);
+    return { cat, rows };
+  });
+}
+function openSummaryModal() {
+  const groups = buildSummary();
+  let rowsHtml = '';
+  let grand = 0, kinds = 0;
+  for (const grp of groups) {
+    if (!grp.rows.length) continue;
+    let sub = 0;
+    for (const r of grp.rows) {
+      sub += r.total; grand += r.total; kinds++;
+      rowsHtml += '<tr><td class="cat-cell">' + h(grp.cat) + '</td><td>' + h(r.name) + '</td><td>' +
+        h(r.units.join('/')) + '</td><td class="num">' + r.total + '</td><td class="spaces-cell">' +
+        r.spaces.length + ' 处：' + h(r.spaces.join('、')) + '</td></tr>';
+    }
+    rowsHtml += '<tr><td colspan="3" class="cat-cell">' + h(grp.cat) + ' 小计</td><td class="num">' + sub + '</td><td></td></tr>';
+  }
+  const body =
+    '<table class="sum-table"><thead><tr><th>类别</th><th>项目</th><th>单位</th><th class="num">合计</th><th>涉及空间</th></tr></thead>' +
+    '<tbody>' + (rowsHtml || '<tr><td colspan="5">暂无数据</td></tr>') + '</tbody>' +
+    '<tfoot><tr><td colspan="3">全屋合计（' + kinds + ' 种项目）</td><td class="num">' + grand + '</td><td>' + state.spaces.length + ' 个空间</td></tr></tfoot></table>';
+  openModal('📋 全屋汇总清单（采购 / 交底用）', body,
+    '<button class="btn primary" id="btnPrintSummary">🖨 打印</button><button class="btn" id="btnCloseSummary">关闭</button>');
+  document.getElementById('btnPrintSummary').addEventListener('click', () => window.print());
+  document.getElementById('btnCloseSummary').addEventListener('click', closeModal);
+}
+
+/* ---------- 全局搜索 ---------- */
+function openSearchModal() {
+  const mask = openModal('🔍 全局搜索',
+    '<input type="text" id="searchInput" placeholder="输入关键字，跨空间搜索项目名称与备注…" style="width:100%">' +
+    '<div id="searchResults" style="margin-top:10px"></div>', '');
+  const input = mask.querySelector('#searchInput');
+  const box = mask.querySelector('#searchResults');
+  function renderResults(qRaw) {
+    const q = qRaw.trim().toLowerCase();
+    if (!q) { box.innerHTML = '<div class="search-empty">输入关键字开始搜索</div>'; return; }
+    const hits = [];
+    for (const sp of state.spaces) {
+      for (const it of sp.items) {
+        if (!it.name) continue;
+        const inName = it.name.toLowerCase().includes(q);
+        const inNote = (it.note || '').toLowerCase().includes(q);
+        if (inName || inNote) hits.push({ sp, it, inName });
+      }
+    }
+    if (!hits.length) { box.innerHTML = '<div class="search-empty">没有匹配的项目</div>'; return; }
+    box.innerHTML = hits.slice(0, 80).map(hit =>
+      '<div class="search-row" data-sid="' + h(hit.sp.id) + '" data-iid="' + h(hit.it.id) + '">' +
+      '<span class="s-tag">' + h(hit.sp.name) + '</span>' +
+      '<span class="s-name">' + h(hit.it.name) + (hit.it.qty ? ' ×' + hit.it.qty : '') + '</span>' +
+      '<span class="s-tag">' + h(hit.it.cat) + '</span>' +
+      '<span class="s-note">' + h(hit.it.note || '') + '</span></div>').join('');
+    box.querySelectorAll('.search-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const sid = row.dataset.sid, iid = row.dataset.iid;
+        closeModal();
+        selectedId = sid;
+        renderSidebar();
+        renderMain();
+        const target = document.querySelector('.item-row[data-id="' + iid + '"]');
+        if (target) {
+          target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          target.classList.add('flash');
+          setTimeout(() => target.classList.remove('flash'), 2000);
+        }
+      });
+    });
+  }
+  renderResults('');
+  input.addEventListener('input', () => renderResults(input.value));
+  setTimeout(() => input.focus(), 60);
+}
+
+/* ---------- 分类管理（增删改，改名自动同步项目） ---------- */
+function openCatManageModal() {
+  const mask = openModal('🗂 分类管理',
+    '<div id="cmRows"></div><button class="btn" id="cmAdd" style="margin-top:4px">＋ 新增分类</button>' +
+    '<div style="color:#9ca3af;font-size:12px;margin-top:10px">删除分类时，其中的项目会移到「其他」（若无「其他」则移到第一个分类）；重命名会自动更新所有项目。</div>',
+    '<button class="btn primary" id="cmDone">完成</button>');
+  const body = mask.querySelector('#cmRows');
+  function applyChanges() {
+    rebuildCats();
+    save();
+    renderStats();
+    renderSidebar();
+    renderMain();
+    refreshCounts();
+  }
+  function renderRows() {
+    body.innerHTML = state.cats.map((c, i) =>
+      '<div class="cat-manage-row" data-i="' + i + '">' +
+      '<select class="cm-icon" title="图标">' + CAT_ICON_CHOICES.map(ic =>
+        '<option value="' + ic + '"' + (ic === c.icon ? ' selected' : '') + '>' + ic + '</option>').join('') + '</select>' +
+      '<input type="text" class="cm-name" value="' + h(c.name) + '" placeholder="分类名称">' +
+      '<input type="color" class="cm-color" value="' + c.color + '" title="颜色">' +
+      '<button class="cat-manage-del" data-i="' + i + '">删除</button>' +
+      '</div>').join('');
+    body.querySelectorAll('.cat-manage-row').forEach(row => {
+      const i = Number(row.dataset.i);
+      row.querySelector('.cm-icon').addEventListener('change', e => { state.cats[i].icon = e.target.value; applyChanges(); });
+      row.querySelector('.cm-color').addEventListener('input', e => { state.cats[i].color = e.target.value; applyChanges(); });
+      row.querySelector('.cm-name').addEventListener('input', e => renameCat(i, e.target.value));
+      row.querySelector('.cat-manage-del').addEventListener('click', () => deleteCat(i));
+    });
+  }
+  function renameCat(i, newName) {
+    const old = state.cats[i].name;
+    const trimmed = String(newName || '').trim();
+    if (!trimmed || trimmed === old) return;
+    if (state.cats.some((c, j) => j !== i && c.name === trimmed)) { toast('已存在同名分类「' + trimmed + '」'); return; }
+    state.cats[i].name = trimmed;
+    for (const sp of state.spaces) for (const it of sp.items) if (it.cat === old) it.cat = trimmed;
+    CATS[i] = trimmed;
+    applyChanges();
+    mask.querySelector('.modal-head h3').textContent = '🗂 分类管理';
+  }
+  function deleteCat(i) {
+    if (state.cats.length <= 1) { toast('至少保留一个分类'); return; }
+    const c = state.cats[i];
+    const count = state.spaces.reduce((a, sp) => a + sp.items.filter(it => it.cat === c.name).length, 0);
+    const fallbackName = state.cats.some(x => x.name === '其他') && x_name_is_not(i) ? '其他' : state.cats.filter((_, j) => j !== i)[0].name;
+    if (!confirm('删除分类「' + c.name + '」？' + (count ? '其中 ' + count + ' 个项目将移到「' + fallbackName + '」。' : ''))) return;
+    const snap = takeSnapshot();
+    state.cats.splice(i, 1);
+    for (const sp of state.spaces) for (const it of sp.items) if (it.cat === c.name) it.cat = fallbackName;
+    applyChanges();
+    renderRows();
+    toast('已删除分类「' + c.name + '」', '撤销', () => undoIfCurrent(snap));
+  }
+  function x_name_is_not(i) { return state.cats[i].name !== '其他'; }
+  renderRows();
+  /* 只绑定一次：renderRows 只重建行内容，避免 #cmAdd 监听器叠加导致一次点击新增多个分类 */
+  mask.querySelector('#cmAdd').addEventListener('click', () => {
+    state.cats.push({ name: '新分类' + (state.cats.length > 5 ? state.cats.length - 4 : ''), icon: '📦', color: CAT_COLOR_CHOICES[state.cats.length % CAT_COLOR_CHOICES.length] });
+    applyChanges();
+    renderRows();
+  });
+  mask.querySelector('#cmDone').addEventListener('click', closeModal);
+}
+
+/* ---------- 从其他空间复制项目 ---------- */
+function openCopyItemsModal() {
+  const target = state.spaces.find(s => s.id === selectedId);
+  if (!target) return;
+  const others = state.spaces.filter(s => s.id !== target.id);
+  if (!others.length) { toast('当前只有一个空间，无法复制'); return; }
+  const mask = openModal('⇩ 从其他空间复制项目 → ' + target.name,
+    '<div style="margin-bottom:10px">来源空间：<select id="cisSource">' +
+    others.map(s => '<option value="' + h(s.id) + '">' + h(s.name) + '</option>').join('') + '</select>' +
+    '<label style="margin-left:12px;font-size:13px"><input type="checkbox" id="cisSkipDup" checked> 跳过当前空间已有的同名项目</label></div>' +
+    '<div id="cisCats"></div>',
+    '<button class="btn primary" id="cisGo">复制</button>');
+  const sel = mask.querySelector('#cisSource');
+  const catsBox = mask.querySelector('#cisCats');
+  function renderCats() {
+    const src = others.find(s => s.id === sel.value);
+    catsBox.innerHTML = CATS.map(cat => {
+      const n = src.items.filter(i => i.cat === cat).length;
+      return '<label style="display:inline-flex;align-items:center;gap:5px;margin:4px 12px 4px 0;font-size:13px">' +
+        '<input type="checkbox" class="cis-cat" value="' + h(cat) + '" ' + (n ? 'checked' : 'disabled') + '> ' +
+        h(cat) + '（' + n + ' 项）</label>';
+    }).join('');
+  }
+  renderCats();
+  sel.addEventListener('change', renderCats);
+  mask.querySelector('#cisGo').addEventListener('click', () => {
+    const src = others.find(s => s.id === sel.value);
+    const chosen = new Set(Array.from(mask.querySelectorAll('.cis-cat:checked')).map(cb => cb.value));
+    const skipDup = mask.querySelector('#cisSkipDup').checked;
+    const existing = new Set(target.items.filter(i => chosen.has(i.cat)).map(i => i.name));
+    const snap = takeSnapshot();
+    let copied = 0;
+    for (const it of src.items) {
+      if (!chosen.has(it.cat) || !it.name) continue;
+      if (skipDup && existing.has(it.name)) continue;
+      target.items.push({ id: uid(), cat: it.cat, name: it.name, qty: it.qty, unit: it.unit, note: it.note });
+      existing.add(it.name);
+      copied++;
+    }
+    if (!copied) { toast('没有可复制的项目'); return; }
+    save();
+    renderMain();
+    refreshCounts();
+    toast('✅ 已复制 ' + copied + ' 个项目', '撤销', () => undoIfCurrent(snap));
+    closeModal();
+  });
+}
+
+/* ---------- 复制整个空间 ---------- */
+function cloneSpace() {
+  const sp = state.spaces.find(s => s.id === selectedId);
+  if (!sp) return;
+  takeSnapshot();
+  const copy = deepClone(sp);
+  copy.id = uid();
+  copy.name = sp.name + ' 副本';
+  copy.items.forEach(i => { i.id = uid(); });
+  state.spaces.splice(state.spaces.indexOf(sp) + 1, 0, copy);
+  selectedId = copy.id;
+  save();
+  renderAll();
+  toast('✅ 已复制空间「' + sp.name + '」', '撤销', () => undoIfCurrent(snap));
+}
+
+/* ---------- 拖拽排序（侧栏空间 + 分类内项目） ---------- */
+function initSidebarDrag() {
+  const ul = document.getElementById('spaceList');
+  let dragId = null;
+  ul.addEventListener('dragstart', e => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    dragId = li.dataset.id;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragId); } catch (err) {}
+  });
+  ul.addEventListener('dragover', e => {
+    const li = e.target.closest('li');
+    if (!li || !dragId || li.dataset.id === dragId) return;
+    e.preventDefault();
+    document.querySelectorAll('#spaceList li').forEach(x => x.classList.remove('drag-over'));
+    li.classList.add('drag-over');
+  });
+  ul.addEventListener('drop', e => {
+    const li = e.target.closest('li');
+    document.querySelectorAll('#spaceList li').forEach(x => x.classList.remove('drag-over'));
+    if (!li || !dragId || li.dataset.id === dragId) return;
+    e.preventDefault();
+    const from = state.spaces.findIndex(s => s.id === dragId);
+    const to = state.spaces.findIndex(s => s.id === li.dataset.id);
+    if (from < 0 || to < 0 || from === to) return;
+    const moved = state.spaces.splice(from, 1)[0];
+    state.spaces.splice(from < to ? to - 1 : to, 0, moved);
+    save();
+    renderSidebar();
+    dragId = null;
+  });
+  ul.addEventListener('dragend', () => {
+    dragId = null;
+    document.querySelectorAll('#spaceList li').forEach(x => x.classList.remove('drag-over'));
+  });
+}
+function initItemDrag() {
+  const main = document.getElementById('mainArea');
+  let dragging = null;
+  main.addEventListener('mousedown', e => {
+    if (!e.target.classList.contains('i-handle')) return;
+    const row = e.target.closest('.item-row');
+    if (row) row.draggable = true;
+  });
+  main.addEventListener('mouseup', e => {
+    const row = e.target.closest('.item-row');
+    if (row) row.draggable = false;
+  });
+  main.addEventListener('dragstart', e => {
+    const row = e.target.closest('.item-row');
+    if (!row) return;
+    dragging = row.dataset.id;
+    row.classList.add('drag-src');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragging); } catch (err) {}
+  });
+  main.addEventListener('dragend', e => {
+    document.querySelectorAll('.item-row').forEach(r => { r.classList.remove('drag-src'); r.draggable = false; });
+    document.querySelectorAll('.item-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+    dragging = null;
+  });
+  main.addEventListener('dragover', e => {
+    if (!dragging) return;
+    const row = e.target.closest('.item-row');
+    if (!row || row.dataset.id === dragging) return;
+    const srcRow = document.querySelector('.item-row[data-id="' + dragging + '"]');
+    if (!srcRow || srcRow.closest('.rows') !== row.closest('.rows')) return; // 仅同分类内排序
+    e.preventDefault();
+    document.querySelectorAll('.item-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+    row.classList.add('drag-over');
+  });
+  main.addEventListener('drop', e => {
+    if (!dragging) return;
+    const row = e.target.closest('.item-row');
+    if (!row) return;
+    e.preventDefault();
+    const sp = state.spaces.find(s => s.id === selectedId);
+    if (!sp) return;
+    const from = sp.items.findIndex(i => i.id === dragging);
+    const to = sp.items.findIndex(i => i.id === row.dataset.id);
+    if (from < 0 || to < 0 || from === to) return;
+    const moved = sp.items.splice(from, 1)[0];
+    sp.items.splice(from < to ? to - 1 : to, 0, moved);
+    save();
+    const card = row.closest('.cat-card');
+    renderCategoryRows(sp, card.dataset.cat, card.querySelector('.rows'));
+    updateAllNames();
+    dragging = null;
+  });
+}
+
 function initApp() {
   /* ---- 移动端菜单开关 ---- */
   const topbar = document.querySelector('.topbar');
@@ -1136,7 +1734,7 @@ function initApp() {
     if (!sp) return;
     const t = e.target;
     if (t.classList.contains('space-name-input')) {
-      sp.name = t.value.trim();
+      sp.name = t.value;
       save();
       const li = document.querySelector('#spaceList li[data-id="' + sp.id + '"] .s-name');
       if (li) li.textContent = sp.name || '未命名';
@@ -1150,11 +1748,13 @@ function initApp() {
       if (!row) return;
       const it = sp.items.find(i => i.id === row.dataset.id);
       if (!it) return;
-      if (t.classList.contains('i-name')) it.name = t.value;
+      if (t.classList.contains('i-name')) { it.name = t.value; updateAllNames(); }
       else if (t.classList.contains('i-qty')) {
         const n = parseInt(t.value, 10);
         it.qty = (t.value === '' || isNaN(n) || n < 1) ? null : Math.min(n, 999);
-      } else if (t.classList.contains('i-note')) it.note = t.value;
+        if (it.qty != null && t.value !== String(it.qty)) t.value = String(it.qty);
+      } else if (t.classList.contains('i-unit')) it.unit = t.value;
+      else if (t.classList.contains('i-note')) it.note = t.value;
       save();
       refreshCounts();
       updateCatBadges(sp);
@@ -1165,37 +1765,43 @@ function initApp() {
     const sp = state.spaces.find(s => s.id === selectedId);
     if (!sp) return;
     if (e.target.id === 'btnDelSpace') {
-      if (confirm('确定删除空间「' + sp.name + '」及其全部点位吗？此操作不可撤销。')) {
+      if (confirm('确定删除空间「' + sp.name + '」及其全部点位吗？')) {
+        const snap = takeSnapshot();
+        const idx = state.spaces.indexOf(sp);
         state.spaces = state.spaces.filter(s => s.id !== sp.id);
-        selectedId = state.spaces.length ? state.spaces[0].id : null;
+        selectedId = state.spaces.length ? state.spaces[Math.min(idx, state.spaces.length - 1)].id : null;
         save(); renderAll();
-        toast('已删除空间「' + sp.name + '」');
+        toast('已删除空间「' + sp.name + '」', '撤销', () => undoIfCurrent(snap));
       }
       return;
     }
+    if (e.target.id === 'btnManageCats') { openCatManageModal(); return; }
+    if (e.target.id === 'btnCopyFrom') { openCopyItemsModal(); return; }
+    if (e.target.id === 'btnCloneSpace') { cloneSpace(); return; }
     if (e.target.classList.contains('add')) {
       const card = e.target.closest('.cat-card');
       const cat = card.dataset.cat;
-      const it = { id: uid(), cat, name: '', qty: null, note: '' };
+      const it = { id: uid(), cat, name: '', qty: null, unit: '', note: '' };
       sp.items.push(it);
       save();
       renderCategoryRows(sp, cat, card.querySelector('.rows'));
       updateCatBadges(sp);
       refreshCounts();
-      const rows = card.querySelector('.rows');
-      rows.querySelector('.cat-empty') && rows.querySelector('.cat-empty').remove();
-      const lastRow = rows.querySelector('.item-row:last-child .i-name');
+      const lastRow = card.querySelector('.rows .item-row:last-child .i-name');
       if (lastRow) lastRow.focus();
       return;
     }
     if (e.target.classList.contains('i-del')) {
       const row = e.target.closest('.item-row');
       const it = sp.items.find(i => i.id === row.dataset.id);
+      if (!it) return;
+      const snap = takeSnapshot();
       sp.items = sp.items.filter(i => i.id !== row.dataset.id);
       save();
       renderCategoryRows(sp, it.cat, row.closest('.rows'));
       updateCatBadges(sp);
       refreshCounts();
+      toast('已删除「' + (it.name || '未命名项目') + '」', '撤销', () => undoIfCurrent(snap));
     }
   });
 
@@ -1230,12 +1836,17 @@ function initApp() {
   gnList.addEventListener('click', (e) => {
     if (!e.target.classList.contains('gn-del')) return;
     const li = e.target.closest('li');
+    const removed = state.globalNotes.find(x => x.id === li.dataset.id);
+    const snap = takeSnapshot();
     state.globalNotes = state.globalNotes.filter(x => x.id !== li.dataset.id);
     save(); renderGlobalNotes();
+    if (removed) toast('已删除备注「' + (removed.text || '').slice(0, 20) + '…」', '撤销', () => undoIfCurrent(snap));
   });
 
   /* ---- 顶栏动作 ---- */
   document.getElementById('btnExport').addEventListener('click', exportExcel);
+  document.getElementById('btnSummary').addEventListener('click', openSummaryModal);
+  document.getElementById('btnSearch').addEventListener('click', openSearchModal);
   document.getElementById('btnBackup').addEventListener('click', exportJSON);
   document.getElementById('btnImport').addEventListener('click', () => document.getElementById('fileImport').click());
   document.getElementById('fileImport').addEventListener('change', (e) => {
@@ -1244,12 +1855,14 @@ function initApp() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const s = JSON.parse(reader.result);
+        const s = migrateState(JSON.parse(reader.result));
         if (!s || !Array.isArray(s.spaces)) throw new Error('bad');
+        const snap = takeSnapshot();
         state = s;
+        rebuildCats();
         selectedId = state.spaces.length ? state.spaces[0].id : null;
         save(); renderAll();
-        toast('✅ 已导入备份（' + state.spaces.length + ' 个空间）');
+        toast('✅ 已导入备份（' + state.spaces.length + ' 个空间）', '撤销', () => undoIfCurrent(snap));
       } catch (err) {
         toast('❌ 导入失败：文件格式不正确');
       }
@@ -1259,12 +1872,28 @@ function initApp() {
   });
   document.getElementById('btnReset').addEventListener('click', () => {
     if (confirm('确定恢复为《全屋智能表格.xlsx》的初始数据吗？\n当前所有修改将被覆盖（建议先「备份 JSON」）。')) {
-      state = deepClone(SEED_DATA);
+      const snap = takeSnapshot();
+      state = migrateState(deepClone(SEED_DATA));
+      rebuildCats();
       selectedId = state.spaces.length ? state.spaces[0].id : null;
       save(); renderAll();
-      toast('已恢复初始数据');
+      toast('已恢复初始数据', '撤销', () => undoIfCurrent(snap));
     }
   });
+
+  initSidebarDrag();
+  initItemDrag();
+  let autoPrintModal = false;
+  window.addEventListener('beforeprint', () => {
+    autoPrintModal = !document.getElementById('modalMask');
+    if (autoPrintModal) openSummaryModal();
+  });
+  window.addEventListener('afterprint', () => {
+    if (autoPrintModal) { closeModal(); autoPrintModal = false; }
+  });
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 
   renderAll();
   if (syncCfg && syncCfg.token && syncCfg.gistId) syncCheck(false);

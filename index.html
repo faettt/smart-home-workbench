@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全屋智能点位工作台</title>
+<style>
+  :root{
+    --bg:#eef1f6; --card:#ffffff; --line:#e3e8ef; --txt:#1f2937; --sub:#6b7280;
+    --accent:#2563eb; --danger:#dc2626;
+    --c-light:#f59e0b; --c-switch:#3b82f6; --c-sensor:#10b981; --c-other:#8b5cf6;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--txt); font-size:14px; overflow:hidden;
+  }
+  button{font-family:inherit; cursor:pointer; border:none; background:none; font-size:13px;}
+  input,textarea{font-family:inherit; font-size:14px; color:var(--txt); border:1px solid var(--line);
+    border-radius:8px; padding:6px 10px; background:#fff; outline:none;}
+  input:focus,textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+
+  /* ===== 顶栏 ===== */
+  .topbar{
+    height:58px; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:16px; padding:0 18px;
+  }
+  .brand{font-size:17px; font-weight:700; white-space:nowrap;}
+  .stats{display:flex; gap:8px; flex:1; overflow-x:auto; scrollbar-width:none;}
+  .stats::-webkit-scrollbar{display:none;}
+  .chip{
+    white-space:nowrap; background:#f3f6fb; border:1px solid var(--line);
+    border-radius:999px; padding:4px 12px; font-size:12px; color:#374151;
+  }
+  .chip b{color:var(--accent);}
+  .actions{display:flex; gap:8px; white-space:nowrap;}
+  .btn{
+    padding:7px 14px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:#374151; transition:.15s;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .btn.primary:hover{background:#1d4ed8;}
+  .btn.ghost-danger{color:var(--danger);}
+  .btn.ghost-danger:hover{border-color:var(--danger); color:var(--danger);}
+
+  /* ===== 三栏布局 ===== */
+  .layout{display:flex; height:calc(100% - 58px);}
+  .sidebar{
+    width:224px; min-width:224px; background:#fff; border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+  }
+  .side-head{
+    padding:14px 14px 8px; font-weight:700; font-size:13px; color:#374151;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .side-head button{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;font-size:15px;line-height:1;
+  }
+  .side-head button:hover{background:#1d4ed8;}
+  #spaceList{flex:1; overflow-y:auto; padding:4px 8px 8px; list-style:none;}
+  #spaceList li{
+    display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:8px;
+    cursor:pointer; margin-bottom:2px; border:1px solid transparent;
+  }
+  #spaceList li:hover{background:#f3f6fb;}
+  #spaceList li.active{background:#e8effd; border-color:#c7dbfb;}
+  #spaceList li.active .s-name{color:var(--accent); font-weight:600;}
+  #spaceList .s-icon{font-size:15px;}
+  #spaceList .s-name{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #spaceList .s-count{
+    font-size:11px; color:var(--sub); background:#f1f3f7; border-radius:999px; padding:1px 8px;
+  }
+  #spaceList li.active .s-count{background:#d5e3fb; color:var(--accent);}
+  .side-foot{
+    padding:10px 14px; border-top:1px solid var(--line); font-size:11px; color:#9ca3af;
+  }
+
+  .main{flex:1; overflow-y:auto; padding:20px 24px 40px;}
+  .rightbar{
+    width:300px; min-width:300px; background:#fff; border-left:1px solid var(--line);
+    padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:14px;
+  }
+
+  /* ===== 空间主区 ===== */
+  .space-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .space-name-input{
+    font-size:22px; font-weight:700; border:none; background:transparent;
+    padding:4px 8px; border-radius:8px; min-width:120px; max-width:320px;
+  }
+  .space-name-input:hover{background:#f3f6fb;}
+  .space-name-input:focus{background:#fff; border:1px solid var(--accent);}
+  .space-meta{color:var(--sub); font-size:13px;}
+  .space-head .spacer{flex:1;}
+  .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:1100px){ .cat-grid{grid-template-columns:1fr;} }
+  .cat-card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:14px 14px 10px; box-shadow:0 1px 2px rgba(16,24,40,.04);
+  }
+  .cat-head{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .cat-head .cat-title{font-size:15px; font-weight:700;}
+  .cat-head .cat-bar{width:4px; height:16px; border-radius:2px;}
+  .cat-head .badge{font-size:11px; color:var(--sub); background:#f1f3f7; padding:2px 8px; border-radius:999px;}
+  .cat-head .add{
+    margin-left:auto; color:var(--accent); font-size:12px; padding:4px 10px;
+    border:1px dashed #b6ccf7; border-radius:7px;
+  }
+  .cat-head .add:hover{background:#eef4fe;}
+  .rows{display:flex; flex-direction:column; gap:6px;}
+  .item-row{
+    display:grid; grid-template-columns:minmax(120px,1fr) 58px minmax(100px,1fr) 26px;
+    gap:6px; align-items:center;
+  }
+  .item-row input{padding:6px 8px; font-size:13px; width:100%;}
+  .item-row .i-qty{text-align:center; padding:6px 4px;}
+  .item-row .i-del{
+    color:#c0c6d1; font-size:14px; border-radius:6px; height:28px;
+  }
+  .item-row .i-del:hover{color:var(--danger); background:#fee9e9;}
+  .cat-empty{color:#9ca3af; font-size:12px; padding:6px 2px;}
+  .note-card{
+    margin-top:14px; background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:14px; box-shadow:0 1px 2px rgba(16,24,40,.04);
+  }
+  .note-card h3{font-size:15px; margin-bottom:10px;}
+  .note-card textarea{width:100%; min-height:76px; resize:vertical; line-height:1.6;}
+  .empty-main{display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:70%; color:#9ca3af; gap:12px;}
+  .empty-main .big{font-size:40px;}
+
+  /* ===== 右栏 全局备注 ===== */
+  .panel-title{font-size:15px; font-weight:700; margin-bottom:10px;}
+  .gn-add{display:flex; gap:6px; margin-bottom:10px;}
+  .gn-add input{flex:1; min-width:0;}
+  .gn-add button{
+    background:var(--accent); color:#fff; border-radius:8px; padding:0 14px; font-weight:600;
+  }
+  .gn-add button:hover{background:#1d4ed8;}
+  #gnList{list-style:none; display:flex; flex-direction:column; gap:6px;}
+  #gnList li{display:flex; gap:6px; align-items:flex-start;}
+  #gnList .gn-idx{
+    min-width:22px; height:22px; border-radius:6px; background:#eef2fb; color:var(--accent);
+    font-size:11px; display:flex; align-items:center; justify-content:center; margin-top:4px; font-weight:700;
+  }
+  #gnList input{flex:1; min-width:0; font-size:13px; line-height:1.5;}
+  #gnList .gn-del{color:#c0c6d1; font-size:14px; margin-top:4px;}
+  #gnList .gn-del:hover{color:var(--danger);}
+  .gn-empty{color:#9ca3af; font-size:12px;}
+  .tips{
+    background:#fffbeb; border:1px solid #fde68a; color:#92400e;
+    border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.7;
+  }
+
+  /* ===== toast ===== */
+  #toast{
+    position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(20px);
+    background:#111827; color:#fff; padding:10px 20px; border-radius:10px; font-size:13px;
+    opacity:0; pointer-events:none; transition:.25s; z-index:99; box-shadow:0 8px 24px rgba(0,0,0,.25);
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">🏠 全屋智能点位工作台</div>
+  <div class="stats" id="globalStats"></div>
+  <div class="actions">
+    <button class="btn primary" id="btnExport">⬇️ 导出 Excel</button>
+    <button class="btn" id="btnBackup">备份 JSON</button>
+    <button class="btn" id="btnImport">导入 JSON</button>
+    <button class="btn ghost-danger" id="btnReset">恢复初始数据</button>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-head">室内空间 <button id="btnAddSpace" title="添加空间">＋</button></div>
+    <ul id="spaceList"></ul>
+    <div class="side-foot" id="saveStatus">数据自动保存在本机浏览器</div>
+  </aside>
+
+  <main class="main" id="mainArea"></main>
+
+  <aside class="rightbar">
+    <div>
+      <div class="panel-title">📌 全局备注</div>
+      <div class="gn-add">
+        <input id="gnInput" placeholder="输入全局备注，回车添加…">
+        <button id="gnAddBtn">添加</button>
+      </div>
+      <ul id="gnList"></ul>
+    </div>
+    <div class="tips">
+      💾 所有修改实时保存在本机浏览器中，无需手动保存。<br>
+      🔁 换电脑或清理浏览器前，请先「备份 JSON」，再在另一台设备「导入 JSON」。<br>
+      📄 「导出 Excel」生成 .xlsx 文件，含点位总表 / 明细清单 / 全局备注三个工作表。
+    </div>
+  </aside>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+ * 全屋智能点位工作台
+ * 数据模型：state = { spaces:[{id,name,note,items:[{id,cat,name,qty,note}]}], globalNotes:[{id,text}] }
+ * ===================================================================== */
+
+const CATS = ['灯', '开关', '传感器', '其他'];
+const CAT_META = {
+  '灯':     { icon: '💡', color: 'var(--c-light)'  },
+  '开关':   { icon: '🔘', color: 'var(--c-switch)' },
+  '传感器': { icon: '📡', color: 'var(--c-sensor)' },
+  '其他':   { icon: '🧩', color: 'var(--c-other)'  },
+};
+const STORE_KEY = 'smarthome-point-workbench-v1';
+
+/* ---------- 表格初始数据（来自《全屋智能表格.xlsx》） ---------- */
+const SEED_DATA = {
+  spaces: [
+    { id: 'sp-xuanguan', name: '玄关', note: '窗帘盒加灯带', items: [
+      { id: 'i-01', cat: '灯',     name: '灯膜（1985×1180）', qty: 1,    note: '' },
+      { id: 'i-02', cat: '灯',     name: '射灯',             qty: 2,    note: '' },
+      { id: 'i-03', cat: '开关',   name: '三联双控开关',      qty: 2,    note: '' },
+      { id: 'i-04', cat: '传感器', name: '人在传感器',        qty: 1,    note: '' },
+      { id: 'i-05', cat: '其他',   name: '智能门锁',          qty: null, note: '' },
+      { id: 'i-06', cat: '其他',   name: '交换机',            qty: null, note: '' },
+    ]},
+    { id: 'sp-shufang', name: '书房', note: '', items: [
+      { id: 'i-10', cat: '灯',   name: '斗胆灯',       qty: 1, note: '' },
+      { id: 'i-11', cat: '灯',   name: '明装射灯',     qty: 2, note: '' },
+      { id: 'i-12', cat: '灯',   name: '嵌入式筒灯',   qty: 2, note: '' },
+      { id: 'i-13', cat: '开关', name: '双联双控开关', qty: 1, note: '' },
+      { id: 'i-14', cat: '开关', name: '双联单控开关', qty: 1, note: '' },
+      { id: 'i-15', cat: '开关', name: '空调面板',     qty: 1, note: '' },
+    ]},
+    { id: 'sp-babai', name: '八百库', note: '', items: [
+      { id: 'i-20', cat: '灯',     name: '嵌入式筒灯', qty: 1, note: '' },
+      { id: 'i-21', cat: '传感器', name: '人在传感器', qty: 1, note: '' },
+    ]},
+    { id: 'sp-yangtai', name: '阳台家政间', note: '', items: [
+      { id: 'i-30', cat: '灯',   name: '嵌入式筒灯',   qty: 2,    note: '' },
+      { id: 'i-31', cat: '开关', name: '电动晾衣杆开关', qty: null, note: '' },
+      { id: 'i-32', cat: '开关', name: '开关与书房共用', qty: null, note: '' },
+      { id: 'i-33', cat: '其他', name: '电动晾衣杆',   qty: null, note: '' },
+      { id: 'i-34', cat: '其他', name: '电动窗帘',     qty: null, note: '' },
+    ]},
+    { id: 'sp-keting', name: '客厅', note: '', items: [
+      { id: 'i-40', cat: '灯',   name: '斗胆灯',       qty: 1,    note: '' },
+      { id: 'i-41', cat: '灯',   name: '明装射灯',     qty: 2,    note: '' },
+      { id: 'i-42', cat: '灯',   name: '灯带',         qty: null, note: '' },
+      { id: 'i-43', cat: '开关', name: '四联双控开关', qty: 1,    note: '' },
+      { id: 'i-44', cat: '开关', name: '三联双控',     qty: 1,    note: '' },
+      { id: 'i-45', cat: '开关', name: '三联单控',     qty: 1,    note: '' },
+      { id: 'i-46', cat: '开关', name: '四联单控',     qty: null, note: '' },
+      { id: 'i-47', cat: '开关', name: '空调面板',     qty: 1,    note: '' },
+    ]},
+    { id: 'sp-ktyt', name: '客厅阳台', note: '', items: [
+      { id: 'i-50', cat: '灯', name: '明装射灯', qty: 1, note: '可能不够' },
+    ]},
+    { id: 'sp-canting', name: '餐厅', note: '', items: [
+      { id: 'i-60', cat: '灯',   name: '嵌入式筒灯',     qty: 6,    note: '' },
+      { id: 'i-61', cat: '灯',   name: '餐桌吊灯',       qty: null, note: '' },
+      { id: 'i-62', cat: '开关', name: '开关与客厅共用', qty: null, note: '' },
+      { id: 'i-63', cat: '开关', name: '三联双控',       qty: 1,    note: '' },
+    ]},
+    { id: 'sp-chufang', name: '厨房', note: '', items: [
+      { id: 'i-70', cat: '灯',     name: '嵌入式筒灯',   qty: 3,    note: '' },
+      { id: 'i-71', cat: '开关',   name: '三联单控',     qty: 1,    note: '' },
+      { id: 'i-72', cat: '传感器', name: '天然气传感器', qty: null, note: '' },
+      { id: 'i-73', cat: '传感器', name: '烟雾卫士',     qty: null, note: '' },
+      { id: 'i-74', cat: '传感器', name: '浸水传感器',   qty: null, note: '' },
+      { id: 'i-75', cat: '其他',   name: '自动开窗器',   qty: null, note: '' },
+      { id: 'i-76', cat: '其他',   name: '电动窗帘',     qty: null, note: '' },
+    ]},
+    { id: 'sp-kewo', name: '客卧', note: '', items: [
+      { id: 'i-80', cat: '灯',   name: '斗胆灯',       qty: 1,    note: '' },
+      { id: 'i-81', cat: '灯',   name: '明装射灯',     qty: 1,    note: '' },
+      { id: 'i-82', cat: '灯',   name: '灯带',         qty: null, note: '' },
+      { id: 'i-83', cat: '开关', name: '三联双控开关', qty: 2,    note: '' },
+      { id: 'i-84', cat: '开关', name: '空调面板',     qty: 1,    note: '' },
+      { id: 'i-85', cat: '其他', name: '电动窗帘',     qty: null, note: '' },
+    ]},
+    { id: 'sp-ciwo', name: '次卧', note: '', items: [
+      { id: 'i-90', cat: '灯',   name: '斗胆灯',       qty: 1,    note: '' },
+      { id: 'i-91', cat: '灯',   name: '嵌入式筒灯',   qty: 1,    note: '' },
+      { id: 'i-92', cat: '开关', name: '双联双控开关', qty: 1,    note: '' },
+      { id: 'i-93', cat: '开关', name: '单联双控',     qty: 1,    note: '' },
+      { id: 'i-94', cat: '开关', name: '空调面板',     qty: null, note: '' },
+      { id: 'i-95', cat: '其他', name: '电动窗帘',     qty: null, note: '' },
+    ]},
+    { id: 'sp-zhuwo', name: '主卧', note: '', items: [
+      { id: 'i-a0', cat: '灯',   name: '斗胆灯',       qty: 1,    note: '' },
+      { id: 'i-a1', cat: '灯',   name: '灯带',         qty: null, note: '' },
+      { id: 'i-a2', cat: '灯',   name: '吊灯',         qty: 1,    note: '' },
+      { id: 'i-a3', cat: '灯',   name: '床头壁灯',     qty: 1,    note: '原施工图方案没有' },
+      { id: 'i-a4', cat: '开关', name: '双联双控开关', qty: 1,    note: '' },
+      { id: 'i-a5', cat: '开关', name: '三联双控',     qty: 1,    note: '' },
+      { id: 'i-a6', cat: '开关', name: '空调面板',     qty: 1,    note: '' },
+      { id: 'i-a7', cat: '其他', name: '电动窗帘',     qty: null, note: '' },
+    ]},
+    { id: 'sp-zhuwei', name: '主卫', note: '', items: [
+      { id: 'i-b0', cat: '灯',     name: '防雾筒灯',   qty: 2,    note: '' },
+      { id: 'i-b1', cat: '开关',   name: '双联双控开关', qty: 1,  note: '' },
+      { id: 'i-b2', cat: '开关',   name: '三联单控',   qty: 1,    note: '' },
+      { id: 'i-b3', cat: '开关',   name: '浴霸开关',   qty: null, note: '' },
+      { id: 'i-b4', cat: '传感器', name: '人在传感器', qty: 1,    note: '' },
+      { id: 'i-b5', cat: '其他',   name: '浴霸',       qty: null, note: '无灯浴霸是否再单独加筒射灯' },
+    ]},
+    { id: 'sp-ciwei', name: '次卫', note: '', items: [
+      { id: 'i-c0', cat: '灯',     name: '防雾筒灯',   qty: 2,    note: '' },
+      { id: 'i-c1', cat: '开关',   name: '单联单控',   qty: 1,    note: '' },
+      { id: 'i-c2', cat: '开关',   name: '浴霸开关',   qty: 1,    note: '' },
+      { id: 'i-c3', cat: '传感器', name: '人在传感器', qty: 1,    note: '' },
+      { id: 'i-c4', cat: '其他',   name: '浴霸',       qty: null, note: '无灯浴霸是否再单独加筒射灯' },
+    ]},
+  ],
+  globalNotes: [
+    { id: 'gn-1', text: '开关、灯具点位数量采用的是祝诚的施工图数据' },
+  ],
+};
+
+/* ---------- 工具 ---------- */
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function loadState() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.spaces)) return null;
+    return s;
+  } catch (e) { return null; }
+}
+let state = loadState() || deepClone(SEED_DATA);
+let selectedId = state.spaces.length ? state.spaces[0].id : null;
+
+function save() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    flashSaved();
+  } catch (e) { /* 存储不可用时仅内存保留，不影响当前会话编辑 */ }
+}
+let saveTimer = null;
+function flashSaved() {
+  const el = document.getElementById('saveStatus');
+  if (!el) return;
+  el.textContent = '✓ 已自动保存 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { el.textContent = '数据自动保存在本机浏览器'; }, 3000);
+}
+
+/* ---------- 统计 ---------- */
+function spaceStats(sp) {
+  const per = {}; let total = 0, items = 0;
+  for (const c of CATS) {
+    const list = sp.items.filter(i => i.cat === c && i.name);
+    const points = list.reduce((a, i) => a + (i.qty || 1), 0);
+    per[c] = { items: list.length, points };
+    total += points; items += list.length;
+  }
+  return { per, total, items };
+}
+function globalStats() {
+  const g = { spaces: state.spaces.length, per: {}, total: 0, items: 0 };
+  for (const c of CATS) g.per[c] = { items: 0, points: 0 };
+  for (const sp of state.spaces) {
+    const s = spaceStats(sp);
+    g.total += s.total; g.items += s.items;
+    for (const c of CATS) { g.per[c].items += s.per[c].items; g.per[c].points += s.per[c].points; }
+  }
+  return g;
+}
+
+const SPACE_ICONS = [
+  ['玄关', '🚪'], ['书房', '📚'], ['客厅', '🛋️'], ['餐厅', '🍽️'], ['厨房', '🍳'],
+  ['主卧', '🛏️'], ['次卧', '🛏️'], ['客卧', '🛏️'], ['卧', '🛏️'], ['卫', '🚿'],
+  ['家政', '🧺'], ['阳台', '🌿'], ['库', '🗄️'], ['衣帽', '🧥'],
+];
+function spaceIcon(name) {
+  for (const [k, v] of SPACE_ICONS) if (name.includes(k)) return v;
+  return '🏠';
+}
+
+/* =====================================================================
+ * 极简 XLSX 生成器（纯 JS，无需依赖；xlsx = zip(xml)）
+ * ===================================================================== */
+const XLSXWriter = (() => {
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(u8) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function concat(chunks) {
+    let len = 0;
+    for (const ch of chunks) len += ch.length;
+    const out = new Uint8Array(len);
+    let p = 0;
+    for (const ch of chunks) { out.set(ch, p); p += ch.length; }
+    return out;
+  }
+  /* zip（STORE 不压缩，兼容性最好） */
+  function zip(files) {
+    const enc = new TextEncoder();
+    const now = new Date();
+    const dosTime = ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | ((now.getSeconds() >> 1) & 31);
+    const dosDate = (((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31);
+    const chunks = [], central = [];
+    let offset = 0;
+    for (const f of files) {
+      const nameU8 = enc.encode(f.name);
+      const data = f.data;
+      const crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true);
+      lh.setUint16(4, 20, true);
+      lh.setUint16(6, 0x0800, true);          // UTF-8 文件名
+      lh.setUint16(8, 0, true);               // STORE
+      lh.setUint16(10, dosTime, true);
+      lh.setUint16(12, dosDate, true);
+      lh.setUint32(14, crc, true);
+      lh.setUint32(18, data.length, true);
+      lh.setUint32(22, data.length, true);
+      lh.setUint16(26, nameU8.length, true);
+      lh.setUint16(28, 0, true);
+      chunks.push(new Uint8Array(lh.buffer), nameU8, data);
+      central.push({ nameU8, crc, size: data.length, offset });
+      offset += 30 + nameU8.length + data.length;
+    }
+    const cdStart = offset;
+    for (const c of central) {
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true);
+      ch.setUint16(4, 20, true);
+      ch.setUint16(6, 20, true);
+      ch.setUint16(8, 0x0800, true);
+      ch.setUint16(10, 0, true);
+      ch.setUint16(12, dosTime, true);
+      ch.setUint16(14, dosDate, true);
+      ch.setUint32(16, c.crc, true);
+      ch.setUint32(20, c.size, true);
+      ch.setUint32(24, c.size, true);
+      ch.setUint16(28, c.nameU8.length, true);
+      ch.setUint32(42, c.offset, true);
+      chunks.push(new Uint8Array(ch.buffer), c.nameU8);
+      offset += 46 + c.nameU8.length;
+    }
+    const eocd = new DataView(new ArrayBuffer(22));
+    eocd.setUint32(0, 0x06054b50, true);
+    eocd.setUint16(8, central.length, true);
+    eocd.setUint16(10, central.length, true);
+    eocd.setUint32(12, offset - cdStart, true);
+    eocd.setUint32(16, cdStart, true);
+    chunks.push(new Uint8Array(eocd.buffer));
+    return concat(chunks);
+  }
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+      // 去掉 XML 非法控制字符
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  }
+  function colName(n) { // 0 -> A
+    let s = ''; n = n + 1;
+    while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function cellXml(ref, cell) {
+    const s = cell.s ? ' s="' + cell.s + '"' : '';
+    if (cell.v === null || cell.v === undefined || cell.v === '') return '<c r="' + ref + '"' + s + '/>';
+    if (typeof cell.v === 'number' && isFinite(cell.v)) return '<c r="' + ref + '"' + s + '><v>' + cell.v + '</v></c>';
+    return '<c r="' + ref + '" t="inlineStr"' + s + '><is><t xml:space="preserve">' + esc(cell.v) + '</t></is></c>';
+  }
+  function sheetXml(sh) {
+    const nCols = sh.cols.length;
+    let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+    xml += '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+    xml += '<dimension ref="A1:' + colName(nCols - 1) + Math.max(sh.rows.length, 1) + '"/>';
+    if (sh.freeze) {
+      xml += '<sheetViews><sheetView workbookViewId="0"><pane ySplit="' + sh.freeze +
+        '" topLeftCell="A' + (sh.freeze + 1) + '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+    } else {
+      xml += '<sheetViews><sheetView workbookViewId="0"/></sheetViews>';
+    }
+    xml += '<sheetFormatPr defaultRowHeight="18"/>';
+    xml += '<cols>' + sh.cols.map((w, i) =>
+      '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>';
+    xml += '<sheetData>';
+    sh.rows.forEach((row, ri) => {
+      const ht = row.ht ? ' ht="' + row.ht + '" customHeight="1"' : '';
+      xml += '<row r="' + (ri + 1) + '"' + ht + '>';
+      (row.cells || []).forEach((cell, ci) => { if (cell) xml += cellXml(colName(ci) + (ri + 1), cell); });
+      xml += '</row>';
+    });
+    xml += '</sheetData>';
+    if (sh.autoFilter) xml += '<autoFilter ref="' + sh.autoFilter + '"/>';
+    if (sh.merges && sh.merges.length) {
+      xml += '<mergeCells count="' + sh.merges.length + '">' +
+        sh.merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>';
+    }
+    xml += '</worksheet>';
+    return xml;
+  }
+  const STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="4">' +
+    '<font><sz val="11"/><name val="Microsoft YaHei"/><charset val="134"/></font>' +
+    '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Microsoft YaHei"/><charset val="134"/></font>' +
+    '<font><b/><sz val="14"/><color rgb="FF1F3864"/><name val="Microsoft YaHei"/><charset val="134"/></font>' +
+    '<font><sz val="10"/><color rgb="FF808080"/><name val="Microsoft YaHei"/><charset val="134"/></font>' +
+    '</fonts>' +
+    '<fills count="4">' +
+    '<fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF2F5597"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill>' +
+    '</fills>' +
+    '<borders count="2">' +
+    '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FFB0B7C3"/></left><right style="thin"><color rgb="FFB0B7C3"/></right>' +
+    '<top style="thin"><color rgb="FFB0B7C3"/></top><bottom style="thin"><color rgb="FFB0B7C3"/></bottom><diagonal/></border>' +
+    '</borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="7">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>' +
+    '</cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+  function build(sheets) {
+    const enc = new TextEncoder();
+    const files = [];
+    const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    const RNS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const PNS = 'http://schemas.openxmlformats.org/package/2006/relationships';
+    // [Content_Types].xml
+    let ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+    sheets.forEach((sh, i) => {
+      ct += '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    });
+    ct += '</Types>';
+    files.push({ name: '[Content_Types].xml', data: enc.encode(ct) });
+    // _rels/.rels
+    files.push({
+      name: '_rels/.rels', data: enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+        '<Relationships xmlns="' + PNS + '">' +
+        '<Relationship Id="rId1" Type="' + RNS + '/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>')
+    });
+    // xl/workbook.xml
+    let wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<workbook xmlns="' + NS + '" xmlns:r="' + RNS + '"><sheets>';
+    sheets.forEach((sh, i) => {
+      wb += '<sheet name="' + esc(sh.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+    });
+    wb += '</sheets></workbook>';
+    files.push({ name: 'xl/workbook.xml', data: enc.encode(wb) });
+    // xl/_rels/workbook.xml.rels
+    let rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="' + PNS + '">';
+    sheets.forEach((sh, i) => {
+      rels += '<Relationship Id="rId' + (i + 1) + '" Type="' + RNS + '/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+    });
+    rels += '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + RNS + '/styles" Target="styles.xml"/>';
+    rels += '</Relationships>';
+    files.push({ name: 'xl/_rels/workbook.xml.rels', data: enc.encode(rels) });
+    files.push({ name: 'xl/styles.xml', data: enc.encode(STYLES_XML) });
+    sheets.forEach((sh, i) => files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: enc.encode(sheetXml(sh)) }));
+    return zip(files);
+  }
+  return { build, colName };
+})();
+
+/* ---------- 由 state 生成三个工作表 ---------- */
+function fmtItem(it) {
+  return it.name + (it.qty ? '*' + it.qty : '') + (it.note ? '（' + it.note + '）' : '');
+}
+function buildSheetsFromState(st) {
+  const sheets = [];
+  /* ---- Sheet1 点位总表 ---- */
+  {
+    const rows = [], merges = [];
+    rows.push({ ht: 30, cells: [{ v: '全屋智能点位表', s: 4 }] });
+    merges.push('A1:F1');
+    rows.push({ ht: 24, cells: ['空间', '灯', '开关', '传感器', '其他', '单独备注'].map(h => ({ v: h, s: 1 })) });
+    const totals = {}; let totalItems = 0;
+    for (const c of CATS) totals[c] = { items: 0, points: 0 };
+    for (const sp of st.spaces) {
+      const by = {}; let maxLines = 1;
+      for (const c of CATS) {
+        by[c] = sp.items.filter(i => i.cat === c && i.name).map(fmtItem);
+        if (by[c].length > maxLines) maxLines = by[c].length;
+      }
+      const note = sp.note || '';
+      const noteLines = Math.ceil(note.length / 12);
+      const ht = Math.max(maxLines, noteLines) * 16 + 6;
+      rows.push({
+        ht,
+        cells: [
+          { v: sp.name, s: 3 },
+          { v: by['灯'].join('\n'), s: 2 },
+          { v: by['开关'].join('\n'), s: 2 },
+          { v: by['传感器'].join('\n'), s: 2 },
+          { v: by['其他'].join('\n'), s: 2 },
+          { v: note, s: 6 },
+        ],
+      });
+      const sst = spaceStats(sp);
+      totalItems += sst.items;
+      for (const c of CATS) { totals[c].items += sst.per[c].items; totals[c].points += sst.per[c].points; }
+    }
+    rows.push({
+      ht: 24,
+      cells: [
+        { v: '合计', s: 3 },
+        { v: totals['灯'].items + ' 项 / ' + totals['灯'].points + ' 个', s: 2 },
+        { v: totals['开关'].items + ' 项 / ' + totals['开关'].points + ' 个', s: 2 },
+        { v: totals['传感器'].items + ' 项 / ' + totals['传感器'].points + ' 个', s: 2 },
+        { v: totals['其他'].items + ' 项 / ' + totals['其他'].points + ' 个', s: 2 },
+        { v: '共 ' + st.spaces.length + ' 个空间 · ' + totalItems + ' 项', s: 6 },
+      ],
+    });
+    sheets.push({ name: '点位总表', cols: [10, 22, 22, 22, 22, 24], rows, merges, freeze: 2 });
+  }
+  /* ---- Sheet2 明细清单 ---- */
+  {
+    const rows = [];
+    rows.push({ ht: 24, cells: ['空间', '类别', '项目', '数量', '备注'].map(h => ({ v: h, s: 1 })) });
+    for (const sp of st.spaces) {
+      for (const c of CATS) {
+        for (const it of sp.items) {
+          if (it.cat !== c || !it.name) continue;
+          rows.push({ cells: [{ v: sp.name, s: 2 }, { v: c, s: 5 }, { v: it.name, s: 2 }, { v: it.qty == null ? '' : it.qty, s: 5 }, { v: it.note || '', s: 6 }] });
+        }
+      }
+    }
+    const filterEnd = XLSXWriter.colName(4) + rows.length; // A1:E{last}
+    sheets.push({ name: '明细清单', cols: [12, 10, 28, 8, 30], rows, freeze: 1, autoFilter: 'A1:' + filterEnd });
+  }
+  /* ---- Sheet3 全局备注 ---- */
+  {
+    const rows = [];
+    rows.push({ ht: 24, cells: ['序号', '备注内容'].map(h => ({ v: h, s: 1 })) });
+    st.globalNotes.forEach((g, i) => {
+      rows.push({ cells: [{ v: i + 1, s: 5 }, { v: g.text || '', s: 2 }] });
+    });
+    sheets.push({ name: '全局备注', cols: [6, 90], rows, freeze: 1 });
+  }
+  return sheets;
+}
+
+/* ---------- 下载 ---------- */
+function downloadBytes(u8, filename, mime) {
+  const blob = new Blob([u8], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+function exportExcel() {
+  const sheets = buildSheetsFromState(state);
+  const bytes = XLSXWriter.build(sheets);
+  const d = new Date();
+  const ds = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  downloadBytes(bytes, '全屋智能点位表_' + ds + '.xlsx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  toast('✅ 已导出 Excel（含点位总表 / 明细清单 / 全局备注）');
+}
+function exportJSON() {
+  const txt = JSON.stringify(state, null, 2);
+  const d = new Date();
+  const ds = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  downloadBytes(new TextEncoder().encode(txt), '全屋智能点位备份_' + ds + '.json', 'application/json');
+  toast('✅ 已备份 JSON 文件');
+}
+
+/* =====================================================================
+ * 界面渲染
+ * ===================================================================== */
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function renderStats() {
+  const g = globalStats();
+  const el = document.getElementById('globalStats');
+  el.innerHTML =
+    '<span class="chip">🏘️ 空间 <b>' + g.spaces + '</b></span>' +
+    CATS.map(c => {
+      const m = CAT_META[c];
+      return '<span class="chip">' + m.icon + ' ' + c + ' <b>' + g.per[c].items + '</b> 项 · <b>' + g.per[c].points + '</b> 个点位</span>';
+    }).join('') +
+    '<span class="chip">Σ 合计 <b>' + g.total + '</b> 个点位</span>';
+}
+
+function renderSidebar() {
+  const ul = document.getElementById('spaceList');
+  ul.innerHTML = '';
+  for (const sp of state.spaces) {
+    const st = spaceStats(sp);
+    const li = document.createElement('li');
+    li.dataset.id = sp.id;
+    if (sp.id === selectedId) li.classList.add('active');
+    li.innerHTML = '<span class="s-icon">' + spaceIcon(sp.name) + '</span>' +
+      '<span class="s-name"></span><span class="s-count">' + st.total + '</span>';
+    li.querySelector('.s-name').textContent = sp.name || '未命名';
+    li.addEventListener('click', () => { selectedId = sp.id; renderSidebar(); renderMain(); });
+    ul.appendChild(li);
+  }
+}
+
+function renderCategoryRows(sp, cat, container) {
+  const list = sp.items.filter(i => i.cat === cat);
+  container.innerHTML = '';
+  if (!list.length) {
+    container.innerHTML = '<div class="cat-empty">暂无项目，点击右上角「＋ 添加」</div>';
+    return;
+  }
+  for (const it of list) {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.id = it.id;
+    row.innerHTML =
+      '<input class="i-name" placeholder="项目名称">' +
+      '<input class="i-qty" type="number" min="1" max="99" placeholder="—" title="数量，留空表示未定">' +
+      '<input class="i-note" placeholder="备注（选填）">' +
+      '<button class="i-del" title="删除">✕</button>';
+    const nameI = row.querySelector('.i-name');
+    const qtyI = row.querySelector('.i-qty');
+    const noteI = row.querySelector('.i-note');
+    nameI.value = it.name;
+    if (it.qty != null) qtyI.value = it.qty;
+    noteI.value = it.note || '';
+    container.appendChild(row);
+  }
+}
+
+function catCardHtml(cat) {
+  const m = CAT_META[cat];
+  return '<section class="cat-card" data-cat="' + cat + '">' +
+    '<div class="cat-head">' +
+    '<span class="cat-bar" style="background:' + m.color + '"></span>' +
+    '<span>' + m.icon + '</span><span class="cat-title">' + cat + '</span>' +
+    '<span class="badge"></span>' +
+    '<button class="add">＋ 添加</button>' +
+    '</div><div class="rows"></div></section>';
+}
+
+function updateCatBadges(sp) {
+  const st = spaceStats(sp);
+  document.querySelectorAll('#mainArea .cat-card').forEach(card => {
+    const c = card.dataset.cat;
+    const p = st.per[c];
+    card.querySelector('.badge').textContent = p.items ? (p.items + ' 项 · ' + p.points + ' 个点位') : '';
+  });
+}
+
+function renderMain() {
+  const main = document.getElementById('mainArea');
+  const sp = state.spaces.find(s => s.id === selectedId);
+  if (!sp) {
+    main.innerHTML = '<div class="empty-main"><div class="big">🏠</div>' +
+      '<div>还没有空间，点击左侧「＋」添加一个空间开始吧</div></div>';
+    return;
+  }
+  main.innerHTML =
+    '<div class="space-head">' +
+    '<input class="space-name-input" value=""><span class="space-meta"></span><span class="spacer"></span>' +
+    '<button class="btn ghost-danger" id="btnDelSpace">🗑 删除此空间</button>' +
+    '</div>' +
+    '<div class="cat-grid">' + CATS.map(catCardHtml).join('') + '</div>' +
+    '<section class="note-card"><h3>📝 单独备注（' + '' + '）</h3>' +
+    '<textarea class="space-note" placeholder="该空间的备注，如：窗帘盒加灯带…"></textarea></section>';
+  const nameI = main.querySelector('.space-name-input');
+  nameI.value = sp.name;
+  main.querySelector('.note-card h3').textContent = '📝 单独备注（' + sp.name + '）';
+  const noteTa = main.querySelector('.space-note');
+  noteTa.value = sp.note || '';
+  for (const cat of CATS) {
+    const card = main.querySelector('.cat-card[data-cat="' + cat + '"]');
+    renderCategoryRows(sp, cat, card.querySelector('.rows'));
+  }
+  updateCatBadges(sp);
+}
+
+function refreshCounts() {
+  renderStats();
+  // 只更新侧栏数字，不整棵重建（避免打断输入）
+  document.querySelectorAll('#spaceList li').forEach(li => {
+    const sp = state.spaces.find(s => s.id === li.dataset.id);
+    if (sp) li.querySelector('.s-count').textContent = spaceStats(sp).total;
+  });
+}
+
+function renderGlobalNotes() {
+  const ul = document.getElementById('gnList');
+  ul.innerHTML = '';
+  if (!state.globalNotes.length) {
+    ul.innerHTML = '<div class="gn-empty">暂无全局备注</div>';
+    return;
+  }
+  state.globalNotes.forEach((g, idx) => {
+    const li = document.createElement('li');
+    li.dataset.id = g.id;
+    li.innerHTML = '<span class="gn-idx">' + (idx + 1) + '</span>' +
+      '<input class="gn-text" placeholder="备注内容…"><button class="gn-del" title="删除">✕</button>';
+    li.querySelector('.gn-text').value = g.text;
+    ul.appendChild(li);
+  });
+}
+
+function renderAll() {
+  renderStats();
+  renderSidebar();
+  renderMain();
+  renderGlobalNotes();
+}
+
+/* =====================================================================
+ * 事件绑定（事件委托）
+ * ===================================================================== */
+function initApp() {
+  /* ---- 主区 ---- */
+  const main = document.getElementById('mainArea');
+
+  main.addEventListener('input', (e) => {
+    const sp = state.spaces.find(s => s.id === selectedId);
+    if (!sp) return;
+    const t = e.target;
+    if (t.classList.contains('space-name-input')) {
+      sp.name = t.value.trim();
+      save();
+      const li = document.querySelector('#spaceList li[data-id="' + sp.id + '"] .s-name');
+      if (li) li.textContent = sp.name || '未命名';
+      main.querySelector('.note-card h3').textContent = '📝 单独备注（' + (sp.name || '未命名') + '）';
+      refreshCounts();
+    } else if (t.classList.contains('space-note')) {
+      sp.note = t.value;
+      save();
+    } else {
+      const row = t.closest('.item-row');
+      if (!row) return;
+      const it = sp.items.find(i => i.id === row.dataset.id);
+      if (!it) return;
+      if (t.classList.contains('i-name')) it.name = t.value;
+      else if (t.classList.contains('i-qty')) {
+        const n = parseInt(t.value, 10);
+        it.qty = (t.value === '' || isNaN(n) || n < 1) ? null : Math.min(n, 999);
+      } else if (t.classList.contains('i-note')) it.note = t.value;
+      save();
+      refreshCounts();
+      updateCatBadges(sp);
+    }
+  });
+
+  main.addEventListener('click', (e) => {
+    const sp = state.spaces.find(s => s.id === selectedId);
+    if (!sp) return;
+    if (e.target.id === 'btnDelSpace') {
+      if (confirm('确定删除空间「' + sp.name + '」及其全部点位吗？此操作不可撤销。')) {
+        state.spaces = state.spaces.filter(s => s.id !== sp.id);
+        selectedId = state.spaces.length ? state.spaces[0].id : null;
+        save(); renderAll();
+        toast('已删除空间「' + sp.name + '」');
+      }
+      return;
+    }
+    if (e.target.classList.contains('add')) {
+      const card = e.target.closest('.cat-card');
+      const cat = card.dataset.cat;
+      const it = { id: uid(), cat, name: '', qty: null, note: '' };
+      sp.items.push(it);
+      save();
+      renderCategoryRows(sp, cat, card.querySelector('.rows'));
+      updateCatBadges(sp);
+      refreshCounts();
+      const rows = card.querySelector('.rows');
+      rows.querySelector('.cat-empty') && rows.querySelector('.cat-empty').remove();
+      const lastRow = rows.querySelector('.item-row:last-child .i-name');
+      if (lastRow) lastRow.focus();
+      return;
+    }
+    if (e.target.classList.contains('i-del')) {
+      const row = e.target.closest('.item-row');
+      const it = sp.items.find(i => i.id === row.dataset.id);
+      sp.items = sp.items.filter(i => i.id !== row.dataset.id);
+      save();
+      renderCategoryRows(sp, it.cat, row.closest('.rows'));
+      updateCatBadges(sp);
+      refreshCounts();
+    }
+  });
+
+  /* ---- 侧栏 ---- */
+  document.getElementById('btnAddSpace').addEventListener('click', () => {
+    const sp = { id: uid(), name: '新空间', note: '', items: [] };
+    state.spaces.push(sp);
+    selectedId = sp.id;
+    save(); renderAll();
+    const nameI = document.querySelector('.space-name-input');
+    if (nameI) { nameI.focus(); nameI.select(); }
+  });
+
+  /* ---- 全局备注 ---- */
+  const gnInput = document.getElementById('gnInput');
+  function addGlobalNote() {
+    const text = gnInput.value.trim();
+    if (!text) { gnInput.focus(); return; }
+    state.globalNotes.push({ id: uid(), text });
+    gnInput.value = '';
+    save(); renderGlobalNotes();
+  }
+  document.getElementById('gnAddBtn').addEventListener('click', addGlobalNote);
+  gnInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addGlobalNote(); });
+  const gnList = document.getElementById('gnList');
+  gnList.addEventListener('input', (e) => {
+    if (!e.target.classList.contains('gn-text')) return;
+    const li = e.target.closest('li');
+    const g = state.globalNotes.find(x => x.id === li.dataset.id);
+    if (g) { g.text = e.target.value; save(); }
+  });
+  gnList.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('gn-del')) return;
+    const li = e.target.closest('li');
+    state.globalNotes = state.globalNotes.filter(x => x.id !== li.dataset.id);
+    save(); renderGlobalNotes();
+  });
+
+  /* ---- 顶栏动作 ---- */
+  document.getElementById('btnExport').addEventListener('click', exportExcel);
+  document.getElementById('btnBackup').addEventListener('click', exportJSON);
+  document.getElementById('btnImport').addEventListener('click', () => document.getElementById('fileImport').click());
+  document.getElementById('fileImport').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const s = JSON.parse(reader.result);
+        if (!s || !Array.isArray(s.spaces)) throw new Error('bad');
+        state = s;
+        selectedId = state.spaces.length ? state.spaces[0].id : null;
+        save(); renderAll();
+        toast('✅ 已导入备份（' + state.spaces.length + ' 个空间）');
+      } catch (err) {
+        toast('❌ 导入失败：文件格式不正确');
+      }
+    };
+    reader.readAsText(f, 'utf-8');
+    e.target.value = '';
+  });
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (confirm('确定恢复为《全屋智能表格.xlsx》的初始数据吗？\n当前所有修改将被覆盖（建议先「备份 JSON」）。')) {
+      state = deepClone(SEED_DATA);
+      selectedId = state.spaces.length ? state.spaces[0].id : null;
+      save(); renderAll();
+      toast('已恢复初始数据');
+    }
+  });
+
+  renderAll();
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initApp);
+  else initApp();
+}
+</script>
+</body>
+</html>

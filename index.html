@@ -8,7 +8,7 @@
   :root{
     --bg:#eef1f6; --card:#ffffff; --line:#e3e8ef; --txt:#1f2937; --sub:#6b7280;
     --accent:#2563eb; --danger:#dc2626;
-    --c-light:#f59e0b; --c-switch:#3b82f6; --c-sensor:#10b981; --c-other:#8b5cf6;
+    --c-light:#f59e0b; --c-switch:#3b82f6; --c-socket:#ec4899; --c-sensor:#10b981; --c-other:#8b5cf6;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
@@ -211,10 +211,11 @@
  * 数据模型：state = { spaces:[{id,name,note,items:[{id,cat,name,qty,note}]}], globalNotes:[{id,text}] }
  * ===================================================================== */
 
-const CATS = ['灯', '开关', '传感器', '其他'];
+const CATS = ['灯', '开关', '插座', '传感器', '其他'];
 const CAT_META = {
   '灯':     { icon: '💡', color: 'var(--c-light)'  },
   '开关':   { icon: '🔘', color: 'var(--c-switch)' },
+  '插座':   { icon: '🔌', color: 'var(--c-socket)' },
   '传感器': { icon: '📡', color: 'var(--c-sensor)' },
   '其他':   { icon: '🧩', color: 'var(--c-other)'  },
 };
@@ -610,8 +611,8 @@ function buildSheetsFromState(st) {
   {
     const rows = [], merges = [];
     rows.push({ ht: 30, cells: [{ v: '全屋智能点位表', s: 4 }] });
-    merges.push('A1:F1');
-    rows.push({ ht: 24, cells: ['空间', '灯', '开关', '传感器', '其他', '单独备注'].map(h => ({ v: h, s: 1 })) });
+    merges.push('A1:' + XLSXWriter.colName(CATS.length + 1) + '1');
+    rows.push({ ht: 24, cells: ['空间', ...CATS, '单独备注'].map(h => ({ v: h, s: 1 })) });
     const totals = {}; let totalItems = 0;
     for (const c of CATS) totals[c] = { items: 0, points: 0 };
     for (const sp of st.spaces) {
@@ -627,10 +628,7 @@ function buildSheetsFromState(st) {
         ht,
         cells: [
           { v: sp.name, s: 3 },
-          { v: by['灯'].join('\n'), s: 2 },
-          { v: by['开关'].join('\n'), s: 2 },
-          { v: by['传感器'].join('\n'), s: 2 },
-          { v: by['其他'].join('\n'), s: 2 },
+          ...CATS.map(c => ({ v: by[c].join('\n'), s: 2 })),
           { v: note, s: 6 },
         ],
       });
@@ -642,14 +640,11 @@ function buildSheetsFromState(st) {
       ht: 24,
       cells: [
         { v: '合计', s: 3 },
-        { v: totals['灯'].items + ' 项 / ' + totals['灯'].points + ' 个', s: 2 },
-        { v: totals['开关'].items + ' 项 / ' + totals['开关'].points + ' 个', s: 2 },
-        { v: totals['传感器'].items + ' 项 / ' + totals['传感器'].points + ' 个', s: 2 },
-        { v: totals['其他'].items + ' 项 / ' + totals['其他'].points + ' 个', s: 2 },
+        ...CATS.map(c => ({ v: totals[c].items + ' 项 / ' + totals[c].points + ' 个', s: 2 })),
         { v: '共 ' + st.spaces.length + ' 个空间 · ' + totalItems + ' 项', s: 6 },
       ],
     });
-    sheets.push({ name: '点位总表', cols: [10, 22, 22, 22, 22, 24], rows, merges, freeze: 2 });
+    sheets.push({ name: '点位总表', cols: [10, ...CATS.map(() => 22), 24], rows, merges, freeze: 2 });
   }
   /* ---- Sheet2 明细清单 ---- */
   {

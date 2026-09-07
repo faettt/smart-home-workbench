@@ -153,6 +153,19 @@
     border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.7;
   }
 
+  /* ===== 云同步面板 ===== */
+  .sync-body{display:flex; flex-direction:column; gap:8px;}
+  .sync-body > input{width:100%; font-size:13px;}
+  .sync-row{display:flex; gap:6px;}
+  .sync-row input{flex:1; min-width:0; font-size:13px;}
+  .sync-row .btn{flex:0 0 auto;}
+  .sync-status{
+    font-size:12px; color:var(--sub); line-height:1.6; word-break:break-all;
+    background:#f6f8fb; border:1px solid var(--line); border-radius:8px; padding:7px 9px;
+  }
+  .sync-actions{display:flex; gap:6px;}
+  .sync-actions .btn{flex:1; padding:6px 2px; font-size:12px; white-space:nowrap;}
+
   /* ===== toast ===== */
   #toast{
     position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(20px);
@@ -226,7 +239,7 @@
 
   <main class="main" id="mainArea"></main>
 
-  <aside class="rightbar">
+    <aside class="rightbar">
     <div>
       <div class="panel-title">📌 全局备注</div>
       <div class="gn-add">
@@ -235,6 +248,24 @@
       </div>
       <ul id="gnList"></ul>
     </div>
+
+    <div>
+      <div class="panel-title">🔄 云同步（多设备）</div>
+      <div class="sync-body">
+        <input id="syncToken" type="password" placeholder="粘贴 GitHub Token（勾选 gist 权限）">
+        <div class="sync-row">
+          <input id="syncGist" placeholder="Gist ID（留空则自动创建）">
+          <button id="syncConnect" class="btn primary">连接</button>
+        </div>
+        <div class="sync-status" id="syncStatus">未配置：粘贴 Token 后点「连接」</div>
+        <div class="sync-actions">
+          <button class="btn" id="syncUp" title="无条件用当前数据覆盖云端">⬆ 强制上传</button>
+          <button class="btn" id="syncDown" title="无条件用云端数据覆盖本地">⬇ 强制下载</button>
+          <button class="btn ghost-danger" id="syncUnlink">断开</button>
+        </div>
+      </div>
+    </div>
+
     <div class="tips">
       💾 所有修改实时保存在本机浏览器中，无需手动保存。<br>
       🔁 换电脑或清理浏览器前，请先「备份 JSON」，再在另一台设备「导入 JSON」。<br>
@@ -389,8 +420,10 @@ let selectedId = state.spaces.length ? state.spaces[0].id : null;
 function save() {
   if (typeof localStorage === 'undefined') return;
   try {
+    state.updatedAt = Date.now();
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
     flashSaved();
+    scheduleSyncPush();
   } catch (e) { /* 存储不可用时仅内存保留，不影响当前会话编辑 */ }
 }
 let saveTimer = null;
@@ -743,6 +776,198 @@ function exportJSON() {
 }
 
 /* =====================================================================
+ * 云同步（GitHub Gist，免费）：整份 state 以 JSON 存入私密 Gist，
+ * 各设备用同一 Token 连接后自动拉取/推送；按 updatedAt 时间戳防互相覆盖
+ * ===================================================================== */
+const SYNC_CFG_KEY = 'smarthome-point-sync-v1';
+const GIST_FILENAME = '全屋智能点位数据.json';
+const GH_API = 'https://api.github.com';
+
+function loadSyncCfg() {
+  try { return JSON.parse(localStorage.getItem(SYNC_CFG_KEY)) || null; } catch (e) { return null; }
+}
+let syncCfg = (typeof localStorage !== 'undefined') ? loadSyncCfg() : null;
+let syncPushTimer = null, syncBusy = false;
+
+function syncConfigured() { return !!(syncCfg && syncCfg.token && syncCfg.gistId); }
+function setSyncStatus(msg) {
+  const el = document.getElementById('syncStatus');
+  if (el) el.textContent = msg;
+}
+function saveSyncCfg() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(SYNC_CFG_KEY, JSON.stringify(syncCfg));
+}
+function renderSyncPanel() {
+  const t = document.getElementById('syncToken');
+  const gi = document.getElementById('syncGist');
+  if (!t || !gi) return;
+  t.value = (syncCfg && syncCfg.token) ? syncCfg.token : '';
+  gi.value = (syncCfg && syncCfg.gistId) ? syncCfg.gistId : '';
+}
+function ghApi(path, token, opts) {
+  return fetch(GH_API + path, Object.assign({
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+  }, opts || {}));
+}
+async function ghGistGet(token, id) {
+  const r = await ghApi('/gists/' + encodeURIComponent(id), token);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('GitHub API ' + r.status + (r.status === 401 ? '（Token 无效或权限不足）' : ''));
+  return r.json();
+}
+async function ghGistCreate(token, content) {
+  const files = {}; files[GIST_FILENAME] = { content };
+  const r = await ghApi('/gists', token, {
+    method: 'POST',
+    body: JSON.stringify({ description: '全屋智能点位工作台数据（自动云同步，请勿删除）', public: false, files }),
+  });
+  if (!r.ok) throw new Error('创建 Gist 失败（' + r.status + (r.status === 401 ? '，Token 无效或未勾选 gist 权限' : '') + '）');
+  return r.json();
+}
+async function ghGistUpdate(token, id, content) {
+  const files = {}; files[GIST_FILENAME] = { content };
+  const r = await ghApi('/gists/' + encodeURIComponent(id), token, { method: 'PATCH', body: JSON.stringify({ files }) });
+  if (!r.ok) throw new Error('更新 Gist 失败（' + r.status + '）');
+  return r.json();
+}
+function gistDataOf(g) {
+  const f = g && g.files && g.files[GIST_FILENAME];
+  if (!f || !f.content) return null;
+  try { return JSON.parse(f.content); } catch (e) { return null; }
+}
+function fmtTime(ts) {
+  return ts ? new Date(ts).toLocaleString('zh-CN', { hour12: false }) : '未知时间';
+}
+
+function scheduleSyncPush() {
+  if (!syncConfigured()) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => syncPush(false), 4000);
+}
+
+/* 检查云端状态，只更新状态行 */
+async function syncCheck(quiet) {
+  if (!syncConfigured()) return;
+  if (!quiet) setSyncStatus('… 正在检查云端');
+  try {
+    const g = await ghGistGet(syncCfg.token, syncCfg.gistId);
+    if (!g) { setSyncStatus('云端还没有同步数据：点「⬆ 强制上传」完成首次上传'); return; }
+    const remote = gistDataOf(g);
+    if (!remote || !Array.isArray(remote.spaces)) { setSyncStatus('⚠ 云端 Gist 里没有有效的点位数据'); return; }
+    const rT = remote.updatedAt || 0, lT = state.updatedAt || 0;
+    if (rT > lT) setSyncStatus('☁️ 云端更新（' + fmtTime(rT) + '）：点「⬇ 强制下载」获取');
+    else if (rT < lT) setSyncStatus('💾 本地较新，修改会自动上传');
+    else setSyncStatus('✅ 本地与云端一致（' + fmtTime(rT) + '）');
+  } catch (e) {
+    setSyncStatus('❌ 连接失败：' + e.message);
+  }
+}
+
+/* 上传。force=false 时若云端更新则取消，防止旧设备覆盖新数据 */
+async function syncPush(force) {
+  if (!syncConfigured() || syncBusy) return;
+  syncBusy = true;
+  try {
+    if (!force) setSyncStatus('⬆ 正在自动上传…');
+    const g = await ghGistGet(syncCfg.token, syncCfg.gistId).catch(() => null);
+    const remote = g ? gistDataOf(g) : null;
+    if (!force && remote && (remote.updatedAt || 0) > (state.updatedAt || 0)) {
+      setSyncStatus('⚠ 云端数据比本地新（' + fmtTime(remote.updatedAt) + '），已暂停自动上传。确认要覆盖云端请点「⬆ 强制上传」');
+      syncBusy = false;
+      return;
+    }
+    if (g && g.id) {
+      await ghGistUpdate(syncCfg.token, syncCfg.gistId, JSON.stringify(state));
+    } else {
+      const ng = await ghGistCreate(syncCfg.token, JSON.stringify(state));
+      syncCfg.gistId = ng.id;
+      saveSyncCfg();
+      renderSyncPanel();
+    }
+    setSyncStatus('✅ 已上传到云端 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+  } catch (e) {
+    setSyncStatus('❌ 上传失败：' + e.message);
+  }
+  syncBusy = false;
+}
+
+/* 下载云端数据覆盖本地 */
+async function syncDownload(skipConfirm) {
+  if (!syncConfigured() || syncBusy) return;
+  syncBusy = true;
+  try {
+    setSyncStatus('⬇ 正在从云端下载…');
+    const g = await ghGistGet(syncCfg.token, syncCfg.gistId);
+    if (!g) { setSyncStatus('云端还没有同步数据：点「⬆ 强制上传」完成首次上传'); syncBusy = false; return; }
+    const remote = gistDataOf(g);
+    if (!remote || !Array.isArray(remote.spaces)) { setSyncStatus('⚠ 云端 Gist 里没有有效的点位数据'); syncBusy = false; return; }
+    if (!skipConfirm) {
+      if (!confirm('将用云端数据（更新于 ' + fmtTime(remote.updatedAt) + '）覆盖本机当前数据，确定吗？')) {
+        setSyncStatus('已取消下载');
+        syncBusy = false;
+        return;
+      }
+    }
+    state = remote;
+    selectedId = state.spaces.length ? state.spaces[0].id : null;
+    save();
+    renderAll();
+    renderSyncPanel();
+    setSyncStatus('✅ 已下载云端数据到本机');
+  } catch (e) {
+    setSyncStatus('❌ 下载失败：' + e.message);
+  }
+  syncBusy = false;
+}
+
+function initSyncPanel() {
+  renderSyncPanel();
+  if (syncConfigured()) setSyncStatus('已连接 Gist（' + syncCfg.gistId.slice(0, 7) + '…），修改会自动上传');
+  document.getElementById('syncConnect').addEventListener('click', async () => {
+    const token = document.getElementById('syncToken').value.trim();
+    const gistId = document.getElementById('syncGist').value.trim();
+    if (!token) { toast('请先粘贴 GitHub Token'); return; }
+    syncCfg = { token, gistId };
+    setSyncStatus('… 正在连接');
+    try {
+      if (!gistId) {
+        const ng = await ghGistCreate(token, JSON.stringify(state));
+        syncCfg.gistId = ng.id;
+        saveSyncCfg();
+        renderSyncPanel();
+        setSyncStatus('✅ 已连接并创建云端 Gist，当前数据已上传，其他设备可用同一 Token 连接');
+      } else {
+        await ghGistGet(token, gistId);
+        saveSyncCfg();
+        await syncCheck(false);
+      }
+      toast('✅ 云同步已连接');
+    } catch (e) {
+      syncCfg = null;
+      setSyncStatus('❌ 连接失败：' + e.message);
+    }
+  });
+  document.getElementById('syncUp').addEventListener('click', () => {
+    if (!syncConfigured()) { toast('请先粘贴 Token 并点「连接」'); return; }
+    syncPush(true);
+  });
+  document.getElementById('syncDown').addEventListener('click', () => {
+    if (!syncConfigured()) { toast('请先粘贴 Token 并点「连接」'); return; }
+    syncDownload(false);
+  });
+  document.getElementById('syncUnlink').addEventListener('click', () => {
+    if (!syncCfg) { toast('当前未连接云同步'); return; }
+    if (!confirm('断开云同步？\n（只清除本机的连接信息，云端 Gist 数据会保留）')) return;
+    syncCfg = null;
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(SYNC_CFG_KEY);
+    renderSyncPanel();
+    setSyncStatus('未配置：粘贴 Token 后点「连接」');
+  });
+  window.addEventListener('focus', () => { if (syncConfigured()) syncCheck(true); });
+}
+
+/* =====================================================================
  * 界面渲染
  * ===================================================================== */
 let toastTimer = null;
@@ -900,6 +1125,9 @@ function initApp() {
     if (e.target.closest('button')) topbar.classList.remove('menu-open');
   });
 
+  /* ---- 云同步面板 ---- */
+  initSyncPanel();
+
   /* ---- 主区 ---- */
   const main = document.getElementById('mainArea');
 
@@ -1039,6 +1267,7 @@ function initApp() {
   });
 
   renderAll();
+  if (syncCfg && syncCfg.token && syncCfg.gistId) syncCheck(false);
 }
 
 if (typeof document !== 'undefined') {

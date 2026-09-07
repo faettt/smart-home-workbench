@@ -160,12 +160,52 @@
     opacity:0; pointer-events:none; transition:.25s; z-index:99; box-shadow:0 8px 24px rgba(0,0,0,.25);
   }
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ===== 移动端适配（≤820px；PC 端不受影响） ===== */
+  .menu-toggle{display:none;}
+  @media (max-width:820px){
+    html,body{height:auto;}
+    body{overflow:auto;}
+    .menu-toggle{
+      display:flex; align-items:center; justify-content:center;
+      width:34px; height:34px; border-radius:8px; border:1px solid var(--line);
+      background:#fff; font-size:17px; flex:0 0 auto;
+    }
+    .topbar{flex-wrap:wrap; height:auto; padding:10px 12px; row-gap:8px;}
+    .brand{font-size:16px; flex:1;}
+    .stats{order:3; flex-basis:100%;}
+    .actions{order:4; flex-basis:100%; display:none; flex-wrap:wrap;}
+    .topbar.menu-open .actions{display:flex;}
+    .actions .btn{flex:1; min-width:calc(50% - 4px);}
+    .layout{display:block; height:auto;}
+    .sidebar{width:auto; min-width:0; border-right:none; border-bottom:1px solid var(--line);}
+    .side-head{padding:10px 12px 4px;}
+    #spaceList{display:flex; overflow-x:auto; padding:6px 8px 10px; gap:6px;}
+    #spaceList li{flex:0 0 auto; margin-bottom:0; border:1px solid var(--line); background:#fff; padding:7px 11px;}
+    #spaceList li.active{border-color:#c7dbfb;}
+    .side-foot{border-top:none; padding:0 12px 10px;}
+    .main{padding:14px 12px 30px; overflow:visible;}
+    .space-head{flex-wrap:wrap;}
+    .space-head .btn{white-space:nowrap;}
+    .space-name-input{font-size:19px; min-width:100px;}
+    .item-row{
+      grid-template-columns:minmax(100px,1fr) 56px 26px;
+      grid-template-areas:"name qty del" "note note note";
+    }
+    .item-row .i-name{grid-area:name;}
+    .item-row .i-qty{grid-area:qty;}
+    .item-row .i-del{grid-area:del;}
+    .item-row .i-note{grid-area:note;}
+    .rightbar{width:auto; min-width:0; border-left:none; border-top:1px solid var(--line);}
+    input,textarea{font-size:16px;} /* 防 iOS 聚焦自动放大 */
+  }
 </style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">🏠 全屋智能点位工作台</div>
+  <button class="menu-toggle" id="menuToggle" title="菜单">☰</button>
   <div class="stats" id="globalStats"></div>
   <div class="actions">
     <button class="btn primary" id="btnExport">⬇️ 导出 Excel</button>
@@ -852,6 +892,13 @@ function renderAll() {
  * 事件绑定（事件委托）
  * ===================================================================== */
 function initApp() {
+  /* ---- 移动端菜单开关 ---- */
+  const topbar = document.querySelector('.topbar');
+  document.getElementById('menuToggle').addEventListener('click', () => topbar.classList.toggle('menu-open'));
+  topbar.querySelector('.actions').addEventListener('click', (e) => {
+    if (e.target.closest('button')) topbar.classList.remove('menu-open');
+  });
+
   /* ---- 主区 ---- */
   const main = document.getElementById('mainArea');
 

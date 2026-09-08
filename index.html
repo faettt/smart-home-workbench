@@ -305,21 +305,23 @@
     .space-head .btn{white-space:nowrap; min-height:40px; padding:7px 10px;}
     .space-name-input{font-size:19px; min-width:100px; max-width:calc(100vw - 130px);}
     .item-row{
-      grid-template-columns:repeat(3,minmax(0,1fr)) 42px 42px;
-      grid-template-areas:"name name name name name" "qty unit reorder del del" "note note note note note";
-      gap:8px 7px; padding:7px 0;
+      grid-template-columns:minmax(0,1fr) 64px 64px 42px 42px;
+      grid-template-areas:"name name qty unit del" "suggest reorder reorder note note";
+      gap:8px 7px; padding:10px 0;
     }
+    .item-row + .item-row{border-top:1px solid var(--line);}
     .item-row .name-wrap{grid-area:name; min-width:0; width:100%;}
     .item-row .i-name{min-width:0; width:100%; min-height:42px;}
     .item-row .i-qty{grid-area:qty; min-height:42px;}
     .item-row .i-unit{grid-area:unit; min-height:42px;}
-    .item-row .i-reorder{grid-area:reorder; display:flex; flex-direction:column; gap:3px; width:42px;}
-    .item-row .i-reorder{grid-area:reorder; display:flex; flex-direction:column; gap:3px; width:42px;}
-    .item-row .i-reorder button{width:42px; height:19px; line-height:16px; padding:0; border:1px solid var(--line); border-radius:4px; color:var(--sub); background:#f8fafc; font-size:12px;}
+    .item-row .i-suggest{grid-area:suggest; min-height:42px;}
+    .item-row .i-reorder{grid-area:reorder; display:flex; gap:4px; width:auto; min-height:42px; align-items:center;}
+    .item-row .i-reorder button{flex:1; width:auto; height:42px; line-height:40px; padding:0; border:1px solid var(--line); border-radius:6px; color:var(--sub); background:#f8fafc; font-size:14px;}
     .item-row .i-reorder button:active{background:#dbeafe; color:var(--accent);}
     .item-row .i-del{grid-area:del; width:42px; height:42px; justify-self:end; font-size:16px;}
     .item-row .i-note{grid-area:note; min-width:0; min-height:42px;}
-    .item-row .i-handle{display:none;}
+
+.item-row .i-handle{display:none;}
     .cat-card{padding:14px 12px 12px;}
     .cat-head{min-height:34px; margin-bottom:9px;}
     .cat-head .add{min-height:36px; padding:7px 12px;}

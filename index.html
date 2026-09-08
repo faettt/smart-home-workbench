@@ -116,9 +116,15 @@
   .cat-head .add:hover{background:#eef4fe;}
   .rows{display:flex; flex-direction:column; gap:6px;}
   .item-row{
-    display:grid; grid-template-columns:12px minmax(110px,1.2fr) 54px 46px minmax(90px,1fr) 26px;
+    display:grid; grid-template-columns:12px minmax(100px,1.2fr) 44px 54px 46px minmax(90px,1fr) 46px 26px;
     gap:6px; align-items:center;
   }
+  .item-row .i-suggest{display:flex; align-items:center; justify-content:center; width:100%; height:28px; border:1px dashed #b6ccf7; border-radius:6px; color:var(--accent); font-size:12px; cursor:pointer;}
+  .item-row .i-suggest:hover{background:#eef4fe;}
+  .item-row .i-suggest:active{background:#dbeafe;}
+  .suggest-menu{position:absolute; z-index:40; background:#fff; border:1px solid #c7d8f5; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,.14); max-height:220px; overflow-y:auto; min-width:180px; padding:4px;}
+  .suggest-menu button{display:block; width:100%; padding:8px 10px; text-align:left; border-radius:6px; color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .suggest-menu button:hover,.suggest-menu button:active{background:#eef4fe; color:var(--accent);}
   .item-row input{padding:6px 8px; font-size:13px; width:100%;}
   .item-row .i-qty{text-align:center; padding:6px 4px;}
   .item-row .i-del{
@@ -297,8 +303,8 @@
     .space-head .btn{white-space:nowrap; min-height:40px; padding:7px 10px;}
     .space-name-input{font-size:19px; min-width:100px; max-width:calc(100vw - 130px);}
     .item-row{
-      grid-template-columns:minmax(0,1fr) 64px 52px 42px 42px;
-      grid-template-areas:"name qty unit reorder del" "note note note note note";
+      grid-template-columns:minmax(0,1fr) 64px 52px 42px 42px 42px;
+      grid-template-areas:"name suggest qty unit reorder del" "note note note note note note";
       gap:7px; padding:5px 0;
     }
     .item-row .i-name{grid-area:name; min-width:0;}
@@ -1377,7 +1383,8 @@ function renderCategoryRows(sp, cat, container) {
     row.dataset.id = it.id;
     row.innerHTML =
       '<span class="i-handle" title="拖动排序">⠿</span>' +
-      '<input class="i-name" placeholder="项目名称" list="allNames">' +
+      '<input class="i-name" placeholder="项目名称">' +
+      '<button class="i-suggest" type="button" title="显示候选项目">候选</button>' +
       '<input class="i-qty" type="number" min="1" max="999" placeholder="—" title="数量，留空表示未定">' +
       '<input class="i-unit" placeholder="单位" title="单位，如：个 / 路 / 米">' +
       '<input class="i-note" placeholder="备注（选填）">' +
@@ -1949,10 +1956,31 @@ function initApp() {
       refreshCounts();
       return;
     }
+    if (e.target.classList.contains('i-suggest')) {
+      const row = e.target.closest('.item-row');
+      const nameInput = row.querySelector('.i-name');
+      const names = Array.from(new Set(state.spaces.flatMap(s => s.items.map(i => i.name).filter(Boolean))));
+      let menu = document.querySelector('.suggest-menu');
+      if (menu) menu.remove();
+      menu = document.createElement('div');
+      menu.className = 'suggest-menu';
+      const rect = e.target.getBoundingClientRect();
+      const menuWidth = Math.min(260, Math.max(180, window.innerWidth - 24));
+      const left = Math.max(12, Math.min(rect.left, window.innerWidth - menuWidth - 12));
+      menu.style.width = menuWidth + 'px';
+      menu.style.left = (window.scrollX + left) + 'px';
+      menu.style.top = (window.scrollY + rect.bottom + 4) + 'px';
+      menu.innerHTML = names.length ? names.map(n => '<button type="button" data-name="' + h(n) + '">' + h(n) + '</button>').join('') : '<div style="padding:8px;color:#9ca3af">暂无候选项目</div>';
+      document.body.appendChild(menu);
+      menu.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { nameInput.value = b.dataset.name; nameInput.dispatchEvent(new Event('input', { bubbles: true })); menu.remove(); }));
+      setTimeout(() => document.addEventListener('click', function closeSuggest(ev){ if (!menu.contains(ev.target) && ev.target !== e.target) { menu.remove(); document.removeEventListener('click', closeSuggest); } }, { once: true }), 0);
+      return;
+    }
     if (e.target.classList.contains('i-del')) {
       const row = e.target.closest('.item-row');
       const it = sp.items.find(i => i.id === row.dataset.id);
       if (!it) return;
+      if (!confirm('确定删除项目「' + (it.name || '未命名项目') + '」吗？')) return;
       const snap = takeSnapshot();
       sp.items = sp.items.filter(i => i.id !== row.dataset.id);
       save();

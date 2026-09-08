@@ -303,18 +303,19 @@
     .space-head .btn{white-space:nowrap; min-height:40px; padding:7px 10px;}
     .space-name-input{font-size:19px; min-width:100px; max-width:calc(100vw - 130px);}
     .item-row{
-      grid-template-columns:minmax(0,1fr) 64px 52px 42px 42px 42px;
-      grid-template-areas:"name suggest qty unit reorder del" "note note note note note note";
-      gap:7px; padding:5px 0;
+      grid-template-columns:repeat(3,minmax(0,1fr)) 42px 42px;
+      grid-template-areas:"name name name name name" "qty unit suggest reorder del" "note note note note note";
+      gap:8px 7px; padding:7px 0;
     }
-    .item-row .i-name{grid-area:name; min-width:0;}
-    .item-row .i-qty{grid-area:qty;}
-    .item-row .i-unit{grid-area:unit;}
-    .item-row .i-reorder{grid-area:reorder; display:flex; flex-direction:column; gap:2px; width:40px;}
-    .item-row .i-reorder button{width:40px; height:19px; line-height:16px; padding:0; border:1px solid var(--line); border-radius:4px; color:var(--sub); background:#f8fafc; font-size:12px;}
+    .item-row .i-name{grid-area:name; min-width:0; width:100%; min-height:42px;}
+    .item-row .i-qty{grid-area:qty; min-height:42px;}
+    .item-row .i-unit{grid-area:unit; min-height:42px;}
+    .item-row .i-suggest{grid-area:suggest; min-height:42px;}
+    .item-row .i-reorder{grid-area:reorder; display:flex; flex-direction:column; gap:3px; width:42px;}
+    .item-row .i-reorder button{width:42px; height:19px; line-height:16px; padding:0; border:1px solid var(--line); border-radius:4px; color:var(--sub); background:#f8fafc; font-size:12px;}
     .item-row .i-reorder button:active{background:#dbeafe; color:var(--accent);}
-    .item-row .i-del{grid-area:del; width:40px; height:40px; justify-self:end; font-size:16px;}
-    .item-row .i-note{grid-area:note; min-width:0;}
+    .item-row .i-del{grid-area:del; width:42px; height:42px; justify-self:end; font-size:16px;}
+    .item-row .i-note{grid-area:note; min-width:0; min-height:42px;}
     .item-row .i-handle{display:none;}
     .cat-card{padding:14px 12px 12px;}
     .cat-head{min-height:34px; margin-bottom:9px;}

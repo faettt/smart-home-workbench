@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>全屋智能点位工作台</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -171,6 +171,8 @@
   }
   .sync-actions{display:flex; gap:6px;}
   .sync-actions .btn{flex:1; padding:6px 2px; font-size:12px; white-space:nowrap;}
+  .mobile-tools-toggle{display:none;}
+  .mobile-tools-content{display:contents;}
 
   /* ===== toast ===== */
   #toast{
@@ -241,6 +243,7 @@
   .item-row .i-handle{
     color:#c3cad6; font-size:13px; cursor:grab; text-align:center; user-select:none;
   }
+  .item-row .i-reorder{display:none;}
   .item-row .i-handle:active{cursor:grabbing;}
   .item-row.drag-src{opacity:.35;}
   .item-row.drag-over{box-shadow:0 -2px 0 var(--accent);}
@@ -266,43 +269,88 @@
   /* ===== 移动端适配（≤820px；PC 端不受影响） ===== */
   .menu-toggle{display:none;}
   @media (max-width:820px){
-    html,body{height:auto;}
-    body{overflow:auto;}
+    :root{--mobile-pad:12px;}
+    html,body{height:auto; min-height:100%;}
+    body{overflow:auto; padding-bottom:env(safe-area-inset-bottom);}
+    *{-webkit-tap-highlight-color:transparent;}
     .menu-toggle{
       display:flex; align-items:center; justify-content:center;
       width:34px; height:34px; border-radius:8px; border:1px solid var(--line);
       background:#fff; font-size:17px; flex:0 0 auto;
     }
-    .topbar{flex-wrap:wrap; height:auto; padding:10px 12px; row-gap:8px;}
-    .brand{font-size:16px; flex:1;}
-    .stats{order:3; flex-basis:100%;}
+    .topbar{flex-wrap:wrap; height:auto; padding:calc(10px + env(safe-area-inset-top)) 12px 10px; row-gap:8px;}
+    .brand{font-size:16px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;}
+    .stats{order:3; flex-basis:100%; padding-bottom:2px; scroll-snap-type:x proximity;}
+    .stats .chip{scroll-snap-align:start; padding:6px 12px;}
     .actions{order:4; flex-basis:100%; display:none; flex-wrap:wrap;}
     .topbar.menu-open .actions{display:flex;}
-    .actions .btn{flex:1; min-width:calc(50% - 4px);}
+    .actions .btn{flex:1; min-width:calc(50% - 4px); min-height:42px;}
     .layout{display:block; height:auto;}
     .sidebar{width:auto; min-width:0; border-right:none; border-bottom:1px solid var(--line);}
-    .side-head{padding:10px 12px 4px;}
-    #spaceList{display:flex; overflow-x:auto; padding:6px 8px 10px; gap:6px;}
-    #spaceList li{flex:0 0 auto; margin-bottom:0; border:1px solid var(--line); background:#fff; padding:7px 11px;}
-    #spaceList li.active{border-color:#c7dbfb;}
-    .side-foot{border-top:none; padding:0 12px 10px;}
-    .main{padding:14px 12px 30px; overflow:visible;}
-    .space-head{flex-wrap:wrap;}
-    .space-head .btn{white-space:nowrap;}
-    .space-name-input{font-size:19px; min-width:100px;}
+    .side-head{padding:10px var(--mobile-pad) 4px; min-height:42px;}
+    #spaceList{display:flex; overflow-x:auto; padding:6px 8px 10px; gap:6px; scroll-snap-type:x proximity; overscroll-behavior-x:contain;}
+    #spaceList li{flex:0 0 auto; min-height:40px; margin-bottom:0; border:1px solid var(--line); background:#fff; padding:8px 12px; scroll-snap-align:start;}
+    #spaceList li.active{border-color:#8bb2f4; box-shadow:0 1px 4px rgba(37,99,235,.16);}
+    .side-foot{border-top:none; padding:0 var(--mobile-pad) 10px;}
+    .main{padding:14px var(--mobile-pad) 30px; overflow:visible;}
+    .space-head{flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+    .space-head .btn{white-space:nowrap; min-height:40px; padding:7px 10px;}
+    .space-name-input{font-size:19px; min-width:100px; max-width:calc(100vw - 130px);}
     .item-row{
-      grid-template-columns:minmax(100px,1fr) 54px 44px 26px;
-      grid-template-areas:"name qty unit del" "note note note note";
+      grid-template-columns:minmax(0,1fr) 64px 52px 42px 42px;
+      grid-template-areas:"name qty unit reorder del" "note note note note note";
+      gap:7px; padding:5px 0;
     }
-    .item-row .i-name{grid-area:name;}
+    .item-row .i-name{grid-area:name; min-width:0;}
     .item-row .i-qty{grid-area:qty;}
     .item-row .i-unit{grid-area:unit;}
-    .item-row .i-del{grid-area:del;}
-    .item-row .i-note{grid-area:note;}
+    .item-row .i-reorder{grid-area:reorder; display:flex; flex-direction:column; gap:2px; width:40px;}
+    .item-row .i-reorder button{width:40px; height:19px; line-height:16px; padding:0; border:1px solid var(--line); border-radius:4px; color:var(--sub); background:#f8fafc; font-size:12px;}
+    .item-row .i-reorder button:active{background:#dbeafe; color:var(--accent);}
+    .item-row .i-del{grid-area:del; width:40px; height:40px; justify-self:end; font-size:16px;}
+    .item-row .i-note{grid-area:note; min-width:0;}
     .item-row .i-handle{display:none;}
-    .rightbar{width:auto; min-width:0; border-left:none; border-top:1px solid var(--line);}
+    .cat-card{padding:14px 12px 12px;}
+    .cat-head{min-height:34px; margin-bottom:9px;}
+    .cat-head .add{min-height:36px; padding:7px 12px;}
+    .rightbar{width:auto; min-width:0; border-left:none; border-top:1px solid var(--line); padding:12px;}
+    .mobile-tools-toggle{display:flex; width:100%; justify-content:space-between; align-items:center; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#f8fafc; color:var(--txt); font-weight:700;}
+    .mobile-tools-toggle span{font-size:12px; color:var(--accent); font-weight:500;}
+    .mobile-tools-content{display:none; padding-top:12px;}
+    .rightbar.tools-open .mobile-tools-content{display:block;}
+    .rightbar.tools-open .mobile-tools-toggle span::after{content:'收起';}
+    .rightbar:not(.tools-open) .mobile-tools-toggle span::after{content:'展开';}
+    .rightbar.tools-open .mobile-tools-toggle span{font-size:0;}
+    .rightbar.tools-open .mobile-tools-toggle span::after,.rightbar:not(.tools-open) .mobile-tools-toggle span::after{font-size:12px;}
+    .mobile-tools-toggle{position:fixed; left:12px; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); width:auto; z-index:50; box-shadow:0 6px 18px rgba(15,23,42,.16);}
+    .rightbar{padding-bottom:0;}
+    .rightbar.tools-open{padding-bottom:78px;}
+    .sync-actions{flex-wrap:wrap;}
+    .sync-body{gap:10px;}
+    .sync-status{font-size:13px;}
+    .gn-add{position:sticky; top:54px; z-index:2; background:#fff; padding-bottom:4px;}
+    #gnList li{min-height:42px; align-items:center;}
+    .sync-actions .btn{min-height:40px;}
     input,textarea{font-size:16px;} /* 防 iOS 聚焦自动放大 */
-    .item-row input{font-size:16px;}
+    .item-row input{font-size:16px; min-width:0;}
+    .gn-add button{min-width:68px; min-height:42px;}
+    .gn-del{width:40px; height:40px;}
+    .modal-mask{align-items:flex-end; padding:0;}
+    .modal{width:100%; max-width:none; max-height:none; height:min(92dvh,780px); border-radius:18px 18px 0 0; padding-bottom:env(safe-area-inset-bottom);}
+    .modal-head{padding:14px 16px 12px; min-height:58px;}
+    .modal-head h3{font-size:16px;}
+    .modal-close{width:40px; height:40px; font-size:18px;}
+    .modal-body{padding:12px 16px; min-height:0; overflow-y:auto; overscroll-behavior:contain;}
+    .modal-footer{padding:10px 16px calc(10px + env(safe-area-inset-bottom));}
+    .modal-footer .btn{min-height:42px; flex:1;}
+    .search-row{min-width:0; flex-wrap:wrap; padding:10px 8px;}
+    .search-row .s-name{min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .search-row .s-note{flex-basis:100%; min-width:0; margin:2px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .sum-table{min-width:620px;}
+    .sum-table th,.sum-table td{padding:9px 8px;}
+    #toast{bottom:calc(18px + env(safe-area-inset-bottom)); max-width:calc(100vw - 24px);}
+    #toast .toast-btn{min-height:34px;}
+    .mobile-tools-content .panel-title{margin-top:4px;}
   }
 </style>
 </head>
@@ -333,6 +381,8 @@
   <main class="main" id="mainArea"></main>
 
     <aside class="rightbar">
+    <button class="mobile-tools-toggle" id="mobileToolsToggle" aria-expanded="false">⚙️ 全局工具 <span></span></button>
+    <div class="mobile-tools-content">
     <div>
       <div class="panel-title">📌 全局备注</div>
       <div class="gn-add">
@@ -363,6 +413,7 @@
       💾 所有修改实时保存在本机浏览器中，无需手动保存。<br>
       🔁 换电脑或清理浏览器前，请先「备份 JSON」，再在另一台设备「导入 JSON」。<br>
       📄 「导出 Excel」生成 .xlsx 文件，含点位总表 / 明细清单 / 汇总清单 / 全局备注四个工作表。
+    </div>
     </div>
   </aside>
 </div>
@@ -1330,6 +1381,7 @@ function renderCategoryRows(sp, cat, container) {
       '<input class="i-qty" type="number" min="1" max="999" placeholder="—" title="数量，留空表示未定">' +
       '<input class="i-unit" placeholder="单位" title="单位，如：个 / 路 / 米">' +
       '<input class="i-note" placeholder="备注（选填）">' +
+      '<span class="i-reorder" aria-label="调整顺序"><button class="i-up" title="上移">↑</button><button class="i-down" title="下移">↓</button></span>' +
       '<button class="i-del" title="删除">✕</button>';
     const nameI = row.querySelector('.i-name');
     const qtyI = row.querySelector('.i-qty');
@@ -1790,13 +1842,26 @@ function initItemDrag() {
 function initApp() {
   /* ---- 移动端菜单开关 ---- */
   const topbar = document.querySelector('.topbar');
-  document.getElementById('menuToggle').addEventListener('click', () => topbar.classList.toggle('menu-open'));
+  const menuToggle = document.getElementById('menuToggle');
+  menuToggle.setAttribute('aria-expanded', 'false');
+  menuToggle.addEventListener('click', () => {
+    const open = topbar.classList.toggle('menu-open');
+    menuToggle.setAttribute('aria-expanded', String(open));
+  });
   topbar.querySelector('.actions').addEventListener('click', (e) => {
     if (e.target.closest('button')) topbar.classList.remove('menu-open');
   });
 
   /* ---- 云同步面板 ---- */
   initSyncPanel();
+
+  /* ---- 移动端全局工具折叠 ---- */
+  const mobileToolsToggle = document.getElementById('mobileToolsToggle');
+  const rightbar = document.querySelector('.rightbar');
+  mobileToolsToggle.addEventListener('click', () => {
+    const open = rightbar.classList.toggle('tools-open');
+    mobileToolsToggle.setAttribute('aria-expanded', String(open));
+  });
 
   /* ---- 主区 ---- */
   const main = document.getElementById('mainArea');
@@ -1864,6 +1929,24 @@ function initApp() {
       refreshCounts();
       const lastRow = card.querySelector('.rows .item-row:last-child .i-name');
       if (lastRow) lastRow.focus();
+      return;
+    }
+    if (e.target.classList.contains('i-up') || e.target.classList.contains('i-down')) {
+      const row = e.target.closest('.item-row');
+      const it = sp.items.find(i => i.id === row.dataset.id);
+      if (!it) return;
+      const same = sp.items.filter(i => i.cat === it.cat);
+      const pos = same.findIndex(i => i.id === it.id);
+      const next = e.target.classList.contains('i-up') ? pos - 1 : pos + 1;
+      if (next < 0 || next >= same.length) return;
+      const other = same[next];
+      const a = sp.items.indexOf(it), b = sp.items.indexOf(other);
+      [sp.items[a], sp.items[b]] = [sp.items[b], sp.items[a]];
+      save();
+      renderCategoryRows(sp, it.cat, row.closest('.rows'));
+      updateAllNames();
+      updateCatBadges(sp);
+      refreshCounts();
       return;
     }
     if (e.target.classList.contains('i-del')) {

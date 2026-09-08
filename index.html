@@ -178,7 +178,7 @@
     background:#111827; color:#fff; padding:10px 20px; border-radius:10px; font-size:13px;
     opacity:0; pointer-events:none; transition:.25s; z-index:99; box-shadow:0 8px 24px rgba(0,0,0,.25);
   }
-  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto;}
   #toast .toast-btn{
     margin-left:12px; background:#2563eb; color:#fff; border-radius:6px;
     padding:4px 12px; font-size:12px; font-weight:600;
@@ -933,6 +933,27 @@ function downloadBytes(u8, filename, mime) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
+/* 支持 showSaveFilePicker 时由用户选择保存文件夹；不支持时回落浏览器默认下载 */
+async function saveBackupFile(u8, filename, mime) {
+  if (typeof window.showSaveFilePicker === 'function') {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'JSON 备份文件', accept: { [mime]: ['.json'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(new Blob([u8], { type: mime }));
+      await writable.close();
+      return 'saved';
+    } catch (e) {
+      if (e && e.name === 'AbortError') return 'cancelled';
+      /* 浏览器策略阻止系统保存面板时，自动回落为普通下载，避免备份失败 */
+    }
+  }
+  downloadBytes(u8, filename, mime);
+  return 'downloaded';
+}
 function exportExcel() {
   const sheets = buildSheetsFromState(state);
   const bytes = XLSXWriter.build(sheets);
@@ -942,12 +963,17 @@ function exportExcel() {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   toast('✅ 已导出 Excel（点位总表 / 明细清单 / 汇总清单 / 全局备注）');
 }
-function exportJSON() {
+async function exportJSON() {
   const txt = JSON.stringify(state, null, 2);
   const d = new Date();
   const ds = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
-  downloadBytes(new TextEncoder().encode(txt), '全屋智能点位备份_' + ds + '.json', 'application/json');
-  toast('✅ 已备份 JSON 文件');
+  try {
+    const result = await saveBackupFile(new TextEncoder().encode(txt), '全屋智能点位备份_' + ds + '.json', 'application/json');
+    if (result === 'cancelled') toast('已取消备份');
+    else toast('✅ 已备份 JSON 文件');
+  } catch (e) {
+    toast('❌ 备份失败：' + (e.message || '无法写入文件'));
+  }
 }
 
 /* =====================================================================

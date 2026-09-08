@@ -36,8 +36,10 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       fetch(req)
         .then((r) => {
-          const copy = r.clone();
-          caches.open(CACHE).then((c) => c.put('./index.html', copy));
+          if (r && r.ok) {
+            const copy = r.clone();
+            e.waitUntil(caches.open(CACHE).then((c) => c.put('./index.html', copy)));
+          }
           return r;
         })
         .catch(() => caches.match('./index.html'))
@@ -49,8 +51,10 @@ self.addEventListener('fetch', (e) => {
       (hit) =>
         hit ||
         fetch(req).then((r) => {
-          const copy = r.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
+          if (r && r.ok) {
+            const copy = r.clone();
+            e.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy)));
+          }
           return r;
         })
     )

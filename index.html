@@ -120,8 +120,8 @@
     gap:6px; align-items:center;
   }
   .item-row .name-wrap{grid-column:2; position:relative; min-width:0; width:100%;}
-  .item-row .name-wrap .i-name{width:100%; padding-right:34px;}
-  .item-row .i-suggest{position:absolute; right:3px; top:50%; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; width:26px; height:34px; padding:0; line-height:16px; white-space:normal; writing-mode:vertical-rl; text-orientation:upright; border:1px dashed #b6ccf7; border-radius:6px; color:var(--accent); background:#fff; font-size:12px; cursor:pointer;}
+  .item-row .name-wrap .i-name{width:100%; padding-right:30px;}
+  .item-row .i-suggest{position:absolute; right:3px; top:50%; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; width:24px; height:24px; padding:0; line-height:1; border:0; border-radius:5px; color:var(--accent); background:transparent; font-size:14px; cursor:pointer;}
   .item-row .i-suggest:hover{background:#eef4fe;}
   .item-row .i-suggest:active{background:#dbeafe;}
   .suggest-menu{position:absolute; z-index:40; background:#fff; border:1px solid #c7d8f5; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,.14); max-height:220px; overflow-y:auto; min-width:180px; padding:4px;}
@@ -311,8 +311,8 @@
     }
     .item-row + .item-row{border-top:1px solid var(--line);}
     .item-row .name-wrap{grid-area:name; min-width:0; width:100%;}
-    .item-row .name-wrap .i-name{padding-right:34px;}
-    .item-row .name-wrap .i-suggest{right:3px; width:26px; height:34px; padding:0; line-height:16px; white-space:normal; writing-mode:vertical-rl; text-orientation:upright; font-size:12px;}
+    .item-row .name-wrap .i-name{padding-right:30px;}
+    .item-row .name-wrap .i-suggest{right:3px; width:24px; height:24px; padding:0; line-height:1; white-space:normal; writing-mode:horizontal-tb; text-orientation:mixed; font-size:14px;}
     .item-row .i-name{min-width:0; width:100%; min-height:42px;}
     .item-row .i-qty{grid-area:qty; min-height:42px;}
     .item-row .i-unit{grid-area:unit; min-height:42px;}
@@ -1406,7 +1406,7 @@ function renderCategoryRows(sp, cat, container) {
     row.dataset.id = it.id;
     row.innerHTML =
       '<span class="i-handle" title="拖动排序">⠿</span>' +
-      '<span class="name-wrap"><input class="i-name" placeholder="项目名称"><button class="i-suggest" type="button" title="显示候选项目">候选</button></span>' +
+      '<span class="name-wrap"><input class="i-name" placeholder="项目名称"><button class="i-suggest" type="button" title="显示候选项目" aria-label="显示候选项目">▼</button></span>' +
       '<input class="i-qty" type="number" min="1" max="999" placeholder="—" title="数量，留空表示未定">' +
       '<input class="i-unit" placeholder="单位" title="单位，如：个 / 路 / 米">' +
       '<input class="i-note" placeholder="备注（选填）">' +
